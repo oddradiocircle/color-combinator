@@ -18,18 +18,6 @@ const initialColors = [
 	'#9C27B0'   // Púrpura
 ];
 
-// ------------------------------
-// Inicialización
-// ------------------------------
-document.addEventListener('DOMContentLoaded', () => {
-	initTheme();
-	initColorInputs();
-	initEventListeners();
-	updateCombinations();
-	
-	// Intentar cargar desde URL o localStorage
-	loadStateFromUrlOrStorage();
-});
 
 function initTheme() {
 	// Configurar colores de tema
@@ -92,8 +80,17 @@ function initEventListeners() {
 	// Eventos de contenido
 	document.getElementById('text-input').addEventListener('input', updateCombinations);
 	
-	// Eventos de paleta
-	document.getElementById('add-color').addEventListener('click', () => addColorInput());
+	// Eventos de paleta (usar delegación de eventos)
+	// Remove existing click handler if it exists
+	document.body.removeEventListener('click', handleAddColorClick);
+	
+	// Add new click handler
+	function handleAddColorClick(e) {
+		if (e.target && e.target.id === 'add-color') {
+			addColorInput();
+		}
+	}
+	document.body.addEventListener('click', handleAddColorClick);
 	
 	// Eventos de importación/exportación
 	document.getElementById('import-coolors').addEventListener('click', importCoolors);
@@ -153,14 +150,20 @@ function addColorInput(colorValue = null, alpha = 0) {
 		saveActionToHistory('add_color');
 	}
 	
-	// Generar color aleatorio si no se proporciona uno
-	if (!colorValue) {
+	// Generar color aleatorio si no se proporciona uno válido
+	if (typeof colorValue !== 'string' || !colorValue) {
 		colorValue = generateRandomColor();
 	}
 	
 	// Asegurar que el color esté en formato hexadecimal
 	if (!colorValue.startsWith('#')) {
 		colorValue = '#' + colorValue;
+	}
+	
+	// Validar formato hexadecimal básico
+	if (!/^#[0-9A-Fa-f]{3,6}$/i.test(colorValue)) {
+		console.warn('Color inválido, generando uno aleatorio:', colorValue);
+		colorValue = generateRandomColor();
 	}
 	
 	const colorInputsContainer = document.getElementById('color-inputs');
