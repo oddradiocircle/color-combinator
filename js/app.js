@@ -139,6 +139,16 @@ function initEventListeners() {
 	
 	// Cerrar lightbox al hacer clic fuera de la tarjeta
 	document.getElementById('lightbox-overlay').addEventListener('click', closeLightbox);
+
+	// Evento para manejar cambios de URL (hash)
+	window.addEventListener('hashchange', function() {
+		// Detectar si hay colores en la URL como hash
+		const hashColors = getColorsFromHash();
+		if (hashColors && hashColors.length > 0) {
+			// Aplicar los colores desde el hash
+			applyColorsFromHash(hashColors);
+		}
+	});
 }
 
 // ------------------------------
@@ -238,6 +248,11 @@ function addColorInput(colorValue = null, alpha = 0) {
 		colorInputElement.style.transform = 'translateY(0)';
 	}, 10);
 	
+	// Actualizar URL con los nuevos colores
+	if (!isInitializing) {
+		saveStateToStorage();
+	}
+	
 	return colorInputElement;
 }
 
@@ -256,6 +271,9 @@ function handleColorChange(event) {
 	
 	// Actualizar combinaciones
 	updateCombinations();
+	
+	// Actualizar URL
+	saveStateToStorage();
 }
 
 function changeColorFormat(event) {
@@ -373,6 +391,8 @@ function removeColor(event) {
 	setTimeout(() => {
 		colorInputsContainer.removeChild(colorInput);
 		updateCombinations();
+		// Actualizar URL
+		saveStateToStorage();
 	}, 300);
 }
 
@@ -841,6 +861,9 @@ function saveColorEdit() {
 	// Actualizar combinaciones
 	updateCombinations();
 	
+	// Actualizar URL
+	saveStateToStorage();
+	
 	// Mostrar notificación
 	showNotification('Color actualizado', 'El color se ha actualizado correctamente', 'success');
 }
@@ -1289,7 +1312,10 @@ function importCoolors() {
 				
 				// Verificar formato válido
 				if (/^#[0-9A-F]{6}$/i.test(color)) {
-					validColors.push(color.toUpperCase());
+					validColors.push({
+						id: `color-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+						color: color.toUpperCase()
+					});
 				}
 			}
 		});
@@ -1299,16 +1325,23 @@ function importCoolors() {
 			return;
 		}
 		
+		// Marcar como inicialización para evitar guardado duplicado
+		isInitializing = true;
+		
 		// Reemplazar paleta actual
 		const colorInputsContainer = document.getElementById('color-inputs');
 		colorInputsContainer.innerHTML = '';
 		
-		validColors.forEach(color => {
-			addColorInput(color, 0);
+		validColors.forEach(colorObj => {
+			addColorInput(colorObj.color, 0);
 		});
 		
-		// Actualizar combinaciones
+		// Finalizar inicialización
+		isInitializing = false;
+		
+		// Actualizar combinaciones y guardar estado
 		updateCombinations();
+		saveStateToStorage();
 		
 		showNotification('Paleta importada', `Se importaron ${validColors.length} colores de Coolors`, 'success');
 		
@@ -1317,6 +1350,7 @@ function importCoolors() {
 		document.getElementById('import-coolors').disabled = true;
 		
 	} catch (error) {
+		isInitializing = false;
 		showNotification('Error de importación', 'Ocurrió un error al procesar la URL', 'error');
 		console.error('Error importando colores:', error);
 	}
@@ -1331,17 +1365,27 @@ function exportCoolors() {
 	}
 	
 	// Formatear colores para Coolors (sin el #)
-	const formattedColors = colors.map(color => color.color.substring(1));
+	const formattedColors = colors.map(color => color.color.substring(1).toUpperCase());
 	
-	// Crear URL
-	const url = `https://coolors.co/${formattedColors.join('-')}`;
+	// Crear URLs tanto para Coolors como para nuestra app
+	const coolorsUrl = `https://coolors.co/${formattedColors.join('-')}`;
+	const appUrl = `${window.location.origin}${window.location.pathname}#${formattedColors.join('-')}`;
+	
+	// Mostrar opciones
+	const message = `
+		<div>
+			<p><strong>URL de Coolors:</strong> ${coolorsUrl}</p>
+			<p><strong>URL de Color Combinator:</strong> ${appUrl}</p>
+			<p>Ambas URLs han sido copiadas al portapapeles</p>
+		</div>
+	`;
 	
 	// Copiar al portapapeles
-	navigator.clipboard.writeText(url).then(() => {
-		showNotification('URL generada', 'La URL de Coolors se ha copiado al portapapeles', 'success');
+	navigator.clipboard.writeText(`Coolors: ${coolorsUrl}\nColor Combinator: ${appUrl}`).then(() => {
+		showNotification('URLs generadas', message, 'success');
 	}).catch(err => {
-		// Si falla la copia, mostrar para que el usuario copie manualmente
-		showNotification('URL generada', url, 'info');
+		// Si falla la copia, mostrar igualmente las URLs
+		showNotification('URLs generadas', message, 'info');
 	});
 }
 
@@ -1432,6 +1476,9 @@ function undoLastAction() {
 	
 	// Actualizar combinaciones
 	updateCombinations();
+	
+	// Actualizar URL con los colores actuales
+	saveStateToStorage();
 	
 	// Deshabilitar botón si no hay más acciones para deshacer
 	if (actionHistory.length === 0) {
@@ -1532,8 +1579,13 @@ function getColorsFromInputs() {
 
 function saveStateToStorage() {
 	try {
-		// Guardar colores
+		// Obtener colores actuales
 		const colors = getColorsFromInputs();
+		
+		// Solo continuar si hay colores
+		if (!colors || colors.length === 0) return;
+		
+		// Guardar colores en localStorage
 		localStorage.setItem('colorCombinator.colors', JSON.stringify(colors));
 		
 		// Guardar texto de previsualización
@@ -1543,23 +1595,101 @@ function saveStateToStorage() {
 		// Guardar formatos de color
 		localStorage.setItem('colorCombinator.colorFormats', JSON.stringify(colorFormats));
 		
-		// Codificar estado en URL
-		updateUrlWithState(colors);
+		// Actualizar URL con formato Coolors
+		updateUrlWithCoolorsFormat(colors);
 	} catch (e) {
 		console.error('Error saving state to storage:', e);
 	}
 }
 
-function loadStateFromUrlOrStorage() {
-	// Prioridad: URL > localStorage
-	const urlState = getStateFromUrl();
+// ------------------------------
+// Nuevas funciones para URL estilo Coolors
+// ------------------------------
+
+// Actualiza la URL con formato de Coolors (solo hash)
+function updateUrlWithCoolorsFormat(colors) {
+	// Verificar que hay colores para guardar
+	if (!colors || colors.length === 0) return;
 	
-	if (urlState && urlState.colors && urlState.colors.length > 0) {
-		// Cargar desde URL
-		applyState(urlState);
+	// Obtener solo los valores de color sin el #
+	const colorValues = colors.map(colorObj => colorObj.color.substring(1).toUpperCase());
+	
+	// Crear la URL en formato Coolors (usando hash)
+	const newUrl = window.location.pathname + '#' + colorValues.join('-');
+	
+	// Actualizar URL sin recargar
+	history.replaceState({}, '', newUrl);
+}
+
+// Obtiene colores desde el fragmento hash de la URL
+function getColorsFromHash() {
+	// Verificar si hay un fragmento en la URL
+	const hash = window.location.hash;
+	if (!hash || hash.length <= 1) return null;
+	
+	try {
+		// Extraer los colores del fragmento (quitando el #)
+		const colorString = hash.substring(1);
+		const colorValues = colorString.split('-');
+		
+		// Validar y formatear colores
+		const validColors = [];
+		colorValues.forEach(color => {
+			// Verificar que sea un color HEX válido de 6 dígitos
+			if (/^[0-9A-F]{6}$/i.test(color)) {
+				validColors.push('#' + color.toUpperCase());
+			}
+		});
+		
+		return validColors.length > 0 ? validColors : null;
+	} catch (e) {
+		console.error('Error parsing colors from URL hash:', e);
+		return null;
+	}
+}
+
+// Aplica los colores desde el hash
+function applyColorsFromHash(colorArray) {
+	if (!colorArray || colorArray.length === 0) return;
+	
+	// Marcar como inicialización para evitar múltiples actualizaciones
+	isInitializing = true;
+	
+	// Limpiar colores actuales
+	const colorInputsContainer = document.getElementById('color-inputs');
+	colorInputsContainer.innerHTML = '';
+	
+	// Agregar nuevos colores
+	colorArray.forEach(colorValue => {
+		addColorInput(colorValue, 0);
+	});
+	
+	// Finalizar inicialización
+	isInitializing = false;
+	
+	// Actualizar combinaciones
+	updateCombinations();
+	
+	// Mostrar notificación
+	showNotification('Paleta cargada', `Se cargaron ${colorArray.length} colores desde la URL`, 'success');
+}
+
+function loadStateFromUrlOrStorage() {
+	// Intentar cargar desde URL hash primero (prioridad)
+	const hashColors = getColorsFromHash();
+	
+	if (hashColors && hashColors.length > 0) {
+		// Aplicar colores desde hash
+		applyColorsFromHash(hashColors);
 	} else {
-		// Cargar desde localStorage si existe
+		// Si no hay colores en la URL, cargar desde localStorage
 		loadStateFromStorage();
+		
+		// Actualizar la URL con los colores cargados desde localStorage
+		const colors = getColorsFromInputs();
+		if (colors && colors.length > 0) {
+			updateUrlWithCoolorsFormat(colors);
+		}
 	}
 }
 
@@ -1593,55 +1723,6 @@ function loadStateFromStorage() {
 	if (darkBgColor) {
 		document.getElementById('dark-bg-color').value = darkBgColor;
 		document.documentElement.style.setProperty('--dark-bg-color', darkBgColor);
-	}
-}
-
-function updateUrlWithState(colors) {
-	// Crear objeto de estado
-	const state = {
-		colors: colors
-	};
-	
-	// Codificar en base64 para URL más limpia
-	const stateStr = JSON.stringify(state);
-	const stateB64 = btoa(stateStr);
-	
-	// Actualizar URL sin recargar
-	const url = new URL(window.location.href);
-	url.searchParams.set('s', stateB64);
-	
-	// Actualizar URL sin recargar
-	history.replaceState({}, '', url);
-}
-
-function getStateFromUrl() {
-	const url = new URL(window.location.href);
-	const stateParam = url.searchParams.get('s');
-	
-	if (!stateParam) return null;
-	
-	try {
-		const stateStr = atob(stateParam);
-		return JSON.parse(stateStr);
-	} catch (e) {
-		console.error('Error parsing state from URL', e);
-		return null;
-	}
-}
-
-function applyState(state) {
-	// Aplicar colores desde el estado
-	if (state.colors && state.colors.length > 0) {
-		// Limpiar colores actuales
-		document.getElementById('color-inputs').innerHTML = '';
-		
-		// Agregar nuevos colores
-		state.colors.forEach(color => {
-			addColorInput(color);
-		});
-		
-		// Actualizar combinaciones
-		updateCombinations();
 	}
 }
 
