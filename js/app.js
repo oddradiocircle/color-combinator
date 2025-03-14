@@ -94,7 +94,8 @@ function initEventListeners() {
 	
 	// Eventos de importación/exportación
 	document.getElementById('import-coolors').addEventListener('click', importCoolors);
-	document.getElementById('export-coolors').addEventListener('click', exportCoolors);
+	document.getElementById('export-coolors').addEventListener('click', exportCoolorsUrl);
+	document.getElementById('export-app-url').addEventListener('click', exportAppUrl);
 	document.getElementById('export-clipboard').addEventListener('click', copyPaletteToClipboard);
 	
 	// Evento de deshacer
@@ -1356,7 +1357,8 @@ function importCoolors() {
 	}
 }
 
-function exportCoolors() {
+// Nueva función para exportar solo la URL de Coolors
+function exportCoolorsUrl() {
 	const colors = getColorsFromInputs();
 	
 	if (colors.length === 0) {
@@ -1367,25 +1369,39 @@ function exportCoolors() {
 	// Formatear colores para Coolors (sin el #)
 	const formattedColors = colors.map(color => color.color.substring(1).toUpperCase());
 	
-	// Crear URLs tanto para Coolors como para nuestra app
+	// Crear URL de Coolors
 	const coolorsUrl = `https://coolors.co/${formattedColors.join('-')}`;
-	const appUrl = `${window.location.origin}${window.location.pathname}#${formattedColors.join('-')}`;
-	
-	// Mostrar opciones
-	const message = `
-		<div>
-			<p><strong>URL de Coolors:</strong> ${coolorsUrl}</p>
-			<p><strong>URL de Color Combinator:</strong> ${appUrl}</p>
-			<p>Ambas URLs han sido copiadas al portapapeles</p>
-		</div>
-	`;
 	
 	// Copiar al portapapeles
-	navigator.clipboard.writeText(`Coolors: ${coolorsUrl}\nColor Combinator: ${appUrl}`).then(() => {
-		showNotification('URLs generadas', message, 'success');
+	navigator.clipboard.writeText(coolorsUrl).then(() => {
+		showNotification('URL copiada', 'URL de Coolors copiada al portapapeles', 'success');
 	}).catch(err => {
-		// Si falla la copia, mostrar igualmente las URLs
-		showNotification('URLs generadas', message, 'info');
+		showNotification('Error al copiar', 'No se pudo copiar la URL', 'error');
+		console.error('Error copying URL:', err);
+	});
+}
+
+// Nueva función para exportar solo la URL de la aplicación
+function exportAppUrl() {
+	const colors = getColorsFromInputs();
+	
+	if (colors.length === 0) {
+		showNotification('Error de exportación', 'No hay colores para exportar', 'error');
+		return;
+	}
+	
+	// Formatear colores (sin el #)
+	const formattedColors = colors.map(color => color.color.substring(1).toUpperCase());
+	
+	// Crear URL de la aplicación
+	const appUrl = `${window.location.origin}${window.location.pathname}#${formattedColors.join('-')}`;
+	
+	// Copiar al portapapeles
+	navigator.clipboard.writeText(appUrl).then(() => {
+		showNotification('URL copiada', 'URL de Color Combinator copiada al portapapeles', 'success');
+	}).catch(err => {
+		showNotification('Error al copiar', 'No se pudo copiar la URL', 'error');
+		console.error('Error copying URL:', err);
 	});
 }
 
