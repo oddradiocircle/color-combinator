@@ -8,6 +8,7 @@ Color Combinator es una herramienta para explorar combinaciones de colores acces
 - Verificación de conformidad con WCAG.
 - Importación y exportación de paletas de colores.
 - Soporte para tema claro y oscuro.
+- **Nuevo**: URLs compatibles con Coolors (por ejemplo, `#FF5252-4CAF50-2196F3-FFC107-9C27B0`).
 
 ## Instalación
 
@@ -16,7 +17,7 @@ Color Combinator es una herramienta para explorar combinaciones de colores acces
    git clone https://github.com/oddradiocircle/color-combinator.git
    ```
 
-2. Abre el archivo `color_combinator.html` en tu navegador.
+2. Abre el archivo `index.html` en tu navegador.
 
 ## Uso
 
@@ -24,6 +25,14 @@ Color Combinator es una herramienta para explorar combinaciones de colores acces
 2. Añade colores a la paleta.
 3. Verifica las combinaciones generadas.
 4. Importa o exporta paletas de colores según sea necesario.
+
+### Compartir paletas mediante URL
+
+Ahora puedes compartir tus paletas de colores fácilmente mediante URL:
+
+- Las paletas se actualizan automáticamente en la URL al modificar colores
+- Puedes compartir URLs en formato Coolors, por ejemplo: `https://tudominio.com/#FF5252-4CAF50-2196F3-FFC107-9C27B0`
+- También puedes importar directamente desde Coolors con el formato: `https://coolors.co/FF5252-4CAF50-2196F3-FFC107-9C27B0`
 
 ## Despliegue en GitHub Pages
 
