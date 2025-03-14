@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-# color-combinator
-Explora combinaciones de colores accesibles y verifica su conformidad con WCAG. Genera, prueba y exporta paletas de colores para tus diseños web.
-=======
 # Color Combinator
 
 Color Combinator es una herramienta para explorar combinaciones de colores accesibles y verificar su conformidad con WCAG. Genera, prueba y exporta paletas de colores para tus diseños web.
@@ -29,6 +25,13 @@ Color Combinator es una herramienta para explorar combinaciones de colores acces
 3. Verifica las combinaciones generadas.
 4. Importa o exporta paletas de colores según sea necesario.
 
+## Despliegue en GitHub Pages
+
+1. Asegúrate de que el repositorio esté actualizado y que todos los cambios estén confirmados.
+2. En la configuración del repositorio en GitHub, ve a la sección "Pages".
+3. En "Source", selecciona la rama `main` y la carpeta `/root`.
+4. Guarda los cambios y espera unos minutos a que GitHub Pages despliegue tu proyecto.
+
 ## Contribuciones
 
 Las contribuciones son bienvenidas. Por favor, abre un issue o envía un pull request.
@@ -36,4 +39,3 @@ Las contribuciones son bienvenidas. Por favor, abre un issue o envía un pull re
 ## Licencia
 
 Este proyecto está bajo la licencia GPL V3.
->>>>>>> b4693a1 (Initial commit)

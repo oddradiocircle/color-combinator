@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Combinator v3.0 - Herramienta para explorar combinaciones de colores</title>
+    <meta name="description" content="Explora combinaciones de colores accesibles y verifica su conformidad con WCAG. Genera, prueba y exporta paletas de colores para tus diseños web.">
+    <meta name="keywords" content="colores, accesibilidad web, WCAG, diseño web, paletas de colores, contrastes, combinación de colores">
+    <meta name="author" content="oddradiocircle">
+    <link rel="canonical" href="https://colorcombinator.gomezpadilla.com/">
+    
+    <!-- Fuente Poppins de Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="app-container">
+        <div id="sidebar-overlay"></div>
+        
+        <button id="mobile-menu-toggle" aria-label="Abrir menú">
+            <span class="material-symbols-outlined">menu</span>
+        </button>
+        
+        <div id="sidebar">
+            <div id="sidebar-content">
+                <h1>Color Combinator</h1>
+                <p class="version">v3.0</p>
+                
+                <section>
+                    <h2>
+                        <span class="material-symbols-outlined">palette</span>
+                        Configuración de tema
+                    </h2>
+                    <div class="theme-settings">
+                        <label for="light-bg-color">
+                            Fondo (Claro)
+                            <div class="tooltip">
+                                <span class="material-symbols-outlined">help</span>
+                                <span class="tooltip-text">Color de fondo para el modo claro. Esto afecta el fondo general de la aplicación.</span>
+                            </div>
+                        </label>
+                        <input type="color" id="light-bg-color" value="#ffffff">
+                        
+                        <label for="dark-bg-color">
+                            Fondo (Oscuro)
+                            <div class="tooltip">
+                                <span class="material-symbols-outlined">help</span>
+                                <span class="tooltip-text">Color de fondo para el modo oscuro. Esto afecta el fondo general de la aplicación cuando el modo oscuro está activado.</span>
+                            </div>
+                        </label>
+                        <input type="color" id="dark-bg-color" value="#1a1a1c">
+                    </div>
+                </section>
+                
+                <section>
+                    <h2>
+                        <span class="material-symbols-outlined">text_fields</span>
+                        Texto de previsualización
+                    </h2>
+                    <label for="text-input">
+                        Contenido HTML
+                        <div class="tooltip">
+                            <span class="material-symbols-outlined">help</span>
+                            <span class="tooltip-text">Ingresa texto o código HTML para previsualizar. Puedes usar etiquetas HTML como &lt;b&gt;, &lt;i&gt;, &lt;h1&gt;, etc.</span>
+                        </div>
+                    </label>
+                    <textarea id="text-input" placeholder="Ingresa texto o HTML para previsualizar"><h1 class="poppins-bold">Color Combinator</h1>
+<p class="poppins-regular">Explora combinaciones accesibles</p></textarea>
+                </section>
+                
+                <section>
+                    <h2>
+                        <span class="material-symbols-outlined">colorize</span>
+                        Paleta de colores
+                    </h2>
+                    <div id="color-inputs">
+                        <!-- Los elementos de color se generarán dinámicamente -->
+                    </div>
+                    <button id="add-color" class="full-width">
+                        <span class="material-symbols-outlined">add</span>
+                        Agregar Color
+                    </button>
+                </section>
+                
+                <section>
+                    <h2>
+                        <span class="material-symbols-outlined">ios_share</span>
+                        Importar/Exportar
+                    </h2>
+                    <label for="coolors-url">
+                        URL de Coolors
+                        <div class="tooltip">
+                            <span class="material-symbols-outlined">help</span>
+                            <span class="tooltip-text">Ingresa una URL de coolors.co para importar una paleta (Ejemplo: https://coolors.co/fffcf2-ccc5b9-403d39-252422-eb5e28).</span>
+                        </div>
+                    </label>
+                    <div class="url-form">
+                        <input type="url" id="coolors-url" placeholder="https://coolors.co/fffcf2-ccc5b9...">
+                    </div>
+                    <button id="import-coolors" class="full-width" disabled>
+                        <span class="material-symbols-outlined">download</span>
+                        Importar Paleta de Coolors
+                    </button>
+                    
+                    <div class="export-options">
+                        <button id="export-coolors">
+                            <span class="material-symbols-outlined">link</span>
+                            Generar URL
+                        </button>
+                        <button id="export-clipboard">
+                            <span class="material-symbols-outlined">content_copy</span>
+                            Copiar Paleta
+                        </button>
+                        <button id="undo-button" title="Deshacer último cambio" disabled>
+                            <span class="material-symbols-outlined">undo</span>
+                            Deshacer
+                        </button>
+                    </div>
+                </section>
+            </div>
+        </div>
+        
+        <div id="main">
+            <div id="combinations-container">
+                <!-- Las combinaciones se generarán dinámicamente -->
+            </div>
+        </div>
+        
+        <button id="theme-toggle" aria-label="Cambiar tema">
+            <span class="material-symbols-outlined">dark_mode</span>
+        </button>
+    </div>
+    
+    <div id="notification-container">
+        <!-- Las notificaciones se generarán dinámicamente -->
+    </div>
+    
+    <div id="color-edit-modal" class="color-edit-modal">
+        <div class="color-edit-content">
+            <div class="color-edit-header">
+                <div class="color-edit-title">Editar Color</div>
+                <button class="color-edit-close">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="color-edit-preview">
+                <div class="color-edit-bg">
+                    <span class="color-edit-label">Fondo</span>
+                    <span id="color-edit-preview-text">Color Combinator</span>
+                </div>
+                <div class="color-edit-text">
+                    <span class="color-edit-label">Texto</span>
+                    <span>Color Combinator</span>
+                </div>
+            </div>
+            <div class="color-edit-comparison">
+                <div class="color-edit-original">
+                    <span class="color-edit-label">Original</span>
+                </div>
+                <div class="color-edit-modified">
+                    <span class="color-edit-label">Modificado</span>
+                </div>
+            </div>
+            <div class="color-edit-controls">
+                <label for="color-edit-picker">Color:</label>
+                <input type="color" id="color-edit-picker" value="#000000">
+                
+                <div class="color-transparency">
+                    <span>Transparencia:</span>
+                    <input type="range" id="color-edit-transparency" class="color-transparency-slider" min="0" max="100" value="0">
+                    <span id="color-edit-transparency-value" class="color-transparency-value">0%</span>
+                </div>
+                
+                <div class="color-format-options">
+                    <div class="color-format-row">
+                        <button class="format-button active" data-format="hex">HEX</button>
+                        <button class="format-button" data-format="rgb">RGB</button>
+                        <button class="format-button" data-format="hsl">HSL</button>
+                    </div>
+                    <div class="color-format-row">
+                        <button class="format-button" data-format="hexa">HEXA</button>
+                        <button class="format-button" data-format="rgba">RGBA</button>
+                        <button class="format-button" data-format="hsla">HSLA</button>
+                    </div>
+                </div>
+                
+                <input type="text" id="color-edit-value" value="#000000" readonly>
+            </div>
+            <div class="color-edit-actions">
+                <button id="color-edit-save" class="primary">
+                    <span class="material-symbols-outlined">check</span>
+                    Aplicar
+                </button>
+                <button id="color-edit-add" class="success">
+                    <span class="material-symbols-outlined">add</span>
+                    Añadir a paleta
+                </button>
+                <button id="color-edit-cancel" class="error">
+                    <span class="material-symbols-outlined">close</span>
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="lightbox-overlay" class="lightbox-overlay"></div>
+    
+    <script src="js/app.js"></script>
+</body>
+</html>
