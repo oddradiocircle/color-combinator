@@ -7,25 +7,118 @@ console.log('- Location:', window.location.href);
 console.log('- Protocol:', window.location.protocol);
 console.log('- CORS compatible:', window.location.protocol !== 'file:');
 
-// Función para inicializar manualmente la aplicación usando la versión corregida
+// Función para inicializar manualmente la aplicación con los componentes corregidos
 window.initApp = async function() {
-  console.log('🚀 Iniciando aplicación manualmente con app-fix.js...');
+  console.log('🚀 Iniciando aplicación manualmente con componentes corregidos...');
   
   try {
-    // Intentar cargar la versión corregida de la aplicación
-    const AppFixModule = await import('./js/app-fix.js');
-    const { ColorCombinatorApp } = AppFixModule;
+    // Importar versiones corregidas
+    const ConfigModule = await import('./js/config.js');
+    const EventBusModule = await import('./js/core/event-bus.js');
+    const ServiceLocatorModule = await import('./js/core/service-locator.js');
+    const ComponentModule = await import('./js/core/component.js');
+    const ColorUtilsModule = await import('./js/utils/color-utils-fixed.js');
+    const DomUtilsModule = await import('./js/utils/dom-utils.js');
+    const StorageUtilsModule = await import('./js/utils/storage-utils.js');
     
-    if (!ColorCombinatorApp) {
-      console.error('❌ No se pudo cargar la clase ColorCombinatorApp');
-      return false;
+    // Importar versiones corregidas de componentes
+    const NotificationModule = await import('./js/components/notification.js');
+    const ColorPickerModule = await import('./js/components/color-picker-fixed.js');
+    
+    // Importar servicios
+    const ThemeServiceModule = await import('./js/services/theme-service.js');
+    const ExportServiceModule = await import('./js/services/export-service.js');
+    const WcagServiceModule = await import('./js/services/wcag-service.js');
+    const UrlServiceModule = await import('./js/services/url-service.js');
+    
+    // Importar modelos
+    const PaletteModelModule = await import('./js/models/palette-model.js');
+    
+    const { config } = ConfigModule;
+    const { eventBus } = EventBusModule;
+    const { serviceLocator } = ServiceLocatorModule;
+    const { ColorPicker } = ColorPickerModule;
+    const { NotificationManager } = NotificationModule;
+    
+    // Crear panel de notificaciones
+    let notificationContainer = document.getElementById('notification-container');
+    if (!notificationContainer) {
+      notificationContainer = document.createElement('div');
+      notificationContainer.id = 'notification-container';
+      notificationContainer.className = 'notification-container';
+      document.body.appendChild(notificationContainer);
     }
     
-    // Crear e inicializar la aplicación
-    const app = new ColorCombinatorApp();
-    const initResult = app.init();
+    const notificationManager = new NotificationManager(notificationContainer);
     
-    console.log('✅ Aplicación inicializada correctamente');
+    // Crear servicios
+    serviceLocator.register('theme', new ThemeServiceModule.ThemeService());
+    serviceLocator.register('export', new ExportServiceModule.ExportService());
+    serviceLocator.register('wcag', new WcagServiceModule.WcagService());
+    serviceLocator.register('url', new UrlServiceModule.UrlService());
+    
+    // Aplicar tema
+    serviceLocator.get('theme').init();
+    
+    // Generar colores de ejemplo
+    const generateRandomColor = ColorUtilsModule.generateRandomColor;
+    
+    // Crear modelo de paleta
+    const paletteModel = new PaletteModelModule.PaletteModel();
+    
+    // Añadir colores de ejemplo
+    const colors = [
+      {color: '#FF5252', id: 'color-1'},
+      {color: '#4CAF50', id: 'color-2'},
+      {color: '#2196F3', id: 'color-3'},
+      {color: '#FFC107', id: 'color-4'}
+    ];
+    
+    // Eliminar elementos viejos
+    const colorInputsContainer = document.getElementById('color-inputs');
+    if (colorInputsContainer) {
+      // Limpiar el contenedor
+      colorInputsContainer.innerHTML = '';
+      
+      // Crear nuevos color pickers con la versión corregida
+      colors.forEach(colorData => {
+        const colorContainer = document.createElement('div');
+        colorContainer.className = 'color-container';
+        colorInputsContainer.appendChild(colorContainer);
+        
+        const colorPicker = new ColorPicker(colorContainer, colorData);
+      });
+      
+      // Añadir botón de agregar color
+      const addButton = document.createElement('button');
+      addButton.id = 'add-color';
+      addButton.className = 'full-width';
+      addButton.innerHTML = `
+        <span class="material-symbols-outlined">add</span>
+        Agregar Color
+      `;
+      
+      addButton.addEventListener('click', () => {
+        const colorContainer = document.createElement('div');
+        colorContainer.className = 'color-container';
+        colorInputsContainer.insertBefore(colorContainer, addButton);
+        
+        const colorPicker = new ColorPicker(colorContainer, {
+          color: generateRandomColor(),
+          id: `color-${Date.now()}`
+        });
+      });
+      
+      colorInputsContainer.appendChild(addButton);
+    }
+    
+    // Notificar éxito
+    eventBus.emit('notification', {
+      title: 'Inicialización manual',
+      message: 'La aplicación se ha inicializado correctamente con componentes corregidos',
+      type: 'success'
+    });
+    
     return true;
   } catch (error) {
     console.error('❌ Error en la inicialización manual:', error);
@@ -64,6 +157,12 @@ try {
     })
     .then(module => {
       console.log('✅ Módulo color-utils.js cargado correctamente');
+      
+      // Verificar la versión corregida
+      return import('./js/utils/color-utils-fixed.js');
+    })
+    .then(module => {
+      console.log('✅ Módulo color-utils-fixed.js cargado correctamente');
       
       // Verificar componentes
       return import('./js/components/notification.js');
