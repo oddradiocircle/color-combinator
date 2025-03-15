@@ -1,50 +1,95 @@
 # Color Combinator
 
-Color Combinator es una herramienta para explorar combinaciones de colores accesibles y verificar su conformidad con WCAG. Genera, prueba y exporta paletas de colores para tus diseños web.
+Una herramienta interactiva para explorar combinaciones de colores y verificar su conformidad con los estándares de accesibilidad web WCAG.
 
 ## Características
 
-- Generación de combinaciones de colores accesibles.
-- Verificación de conformidad con WCAG.
-- Importación y exportación de paletas de colores.
-- Soporte para tema claro y oscuro.
-- **Nuevo**: URLs compatibles con Coolors (por ejemplo, `#FF5252-4CAF50-2196F3-FFC107-9C27B0`).
-
-## Instalación
-
-1. Clona el repositorio:
-   ```sh
-   git clone https://github.com/oddradiocircle/color-combinator.git
-   ```
-
-2. Abre el archivo `index.html` en tu navegador.
+- Crea paletas de colores personalizadas
+- Visualiza todas las combinaciones posibles entre colores
+- Verifica el contraste según WCAG AA y AAA
+- Genera correcciones automáticas para mejorar accesibilidad
+- Compatibilidad total con URLs de Coolors
+- Persistencia de estado en localStorage y URL
+- Tema claro/oscuro y personalización de colores
+- Diseño responsive para dispositivos móviles y de escritorio
 
 ## Uso
 
-1. Ajusta los colores de fondo y texto.
-2. Añade colores a la paleta.
-3. Verifica las combinaciones generadas.
-4. Importa o exporta paletas de colores según sea necesario.
+Puedes acceder a Color Combinator en: [https://colorcombinator.gomezpadilla.com/](https://colorcombinator.gomezpadilla.com/)
 
-### Compartir paletas mediante URL
+### URLs Compartibles
 
-Ahora puedes compartir tus paletas de colores fácilmente mediante URL:
+La aplicación usa URLs simples para compartir paletas, en un formato compatible con Coolors:
 
-- Las paletas se actualizan automáticamente en la URL al modificar colores
-- Puedes compartir URLs en formato Coolors, por ejemplo: `https://tudominio.com/#FF5252-4CAF50-2196F3-FFC107-9C27B0`
-- También puedes importar directamente desde Coolors con el formato: `https://coolors.co/FF5252-4CAF50-2196F3-FFC107-9C27B0`
+```
+https://colorcombinator.gomezpadilla.com/#FF5252-4CAF50-2196F3-FFC107-9C27B0
+```
 
-## Despliegue en GitHub Pages
+También puedes copiar paletas desde Coolors.co e importarlas directamente.
 
-1. Asegúrate de que el repositorio esté actualizado y que todos los cambios estén confirmados.
-2. En la configuración del repositorio en GitHub, ve a la sección "Pages".
-3. En "Source", selecciona la rama `main` y la carpeta `/root`.
-4. Guarda los cambios y espera unos minutos a que GitHub Pages despliegue tu proyecto.
+## Arquitectura Modular
 
-## Contribuciones
+Color Combinator está construido con una arquitectura modular basada en ES Modules, siguiendo los principios de separación de responsabilidades y componentes reutilizables:
 
-Las contribuciones son bienvenidas. Por favor, abre un issue o envía un pull request.
+### Estructura de directorios
+
+```
+color-combinator/
+├── css/
+│   └── styles.css
+├── js/
+│   ├── app.js                 # Punto de entrada principal
+│   ├── config.js              # Configuración centralizada
+│   ├── core/                  # Infraestructura central 
+│   │   ├── event-bus.js       # Sistema de eventos
+│   │   ├── component.js       # Clase base de componentes
+│   │   └── service-locator.js # Gestor de dependencias
+│   ├── models/                # Modelos de datos
+│   │   ├── color-model.js     # Modelo para un color
+│   │   └── palette-model.js   # Modelo para una paleta
+│   ├── services/              # Servicios de la aplicación
+│   │   ├── theme-service.js   # Gestión del tema
+│   │   ├── export-service.js  # Exportación de paletas
+│   │   ├── wcag-service.js    # Cálculos de accesibilidad
+│   │   └── url-service.js     # Manejo de URL
+│   ├── components/            # Componentes UI
+│   │   └── notification.js    # Sistema de notificaciones
+│   └── utils/                 # Funciones utilitarias
+│       ├── color-utils.js     # Utilidades de color
+│       ├── dom-utils.js       # Manipulación del DOM
+│       └── storage-utils.js   # Persistencia en localStorage
+├── index.html
+├── LICENSE
+└── README.md
+```
+
+### Tecnologías
+
+- JavaScript moderno (ES6+)
+- Módulos ES nativos
+- HTML5 y CSS3
+- Metodología basada en componentes
+- Patrón Observer para comunicación entre componentes
+- Patrón Singleton para servicios compartidos
+
+### Características de la arquitectura
+
+- **Modularidad**: Cada parte tiene una responsabilidad clara y bien definida
+- **Desacoplamiento**: Componentes independientes que se comunican mediante eventos
+- **Extensibilidad**: Fácil añadir nuevos componentes o servicios
+- **Mantenibilidad**: Código organizado y bien documentado
+- **Reutilización**: Componentes y utilidades reutilizables
+
+## Contribuir
+
+Las contribuciones son bienvenidas. Para contribuir:
+
+1. Haz fork del repositorio
+2. Crea una rama para tu función (`git checkout -b feature/nueva-funcion`)
+3. Haz commit de tus cambios (`git commit -m 'Añade nueva función'`)
+4. Haz push a la rama (`git push origin feature/nueva-funcion`)
+5. Abre un Pull Request
 
 ## Licencia
 
-Este proyecto está bajo la licencia GPL V3.
+Este proyecto está bajo la Licencia MIT - ver el archivo LICENSE para más detalles.
