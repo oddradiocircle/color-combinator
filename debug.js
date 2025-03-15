@@ -1,23 +1,51 @@
 // Script de diagnóstico para Color Combinator
 console.log('🔍 Iniciando diagnóstico...');
 
-// Verificar si las importaciones funcionan
+// Verificar el entorno de ejecución
+console.log('Verificando entorno de ejecución:');
+console.log('- Location:', window.location.href);
+console.log('- Protocol:', window.location.protocol);
+console.log('- CORS compatible:', window.location.protocol !== 'file:');
+
+// Función para inicializar manualmente la aplicación usando la versión corregida
+window.initApp = async function() {
+  console.log('🚀 Iniciando aplicación manualmente con app-fix.js...');
+  
+  try {
+    // Intentar cargar la versión corregida de la aplicación
+    const AppFixModule = await import('./js/app-fix.js');
+    const { ColorCombinatorApp } = AppFixModule;
+    
+    if (!ColorCombinatorApp) {
+      console.error('❌ No se pudo cargar la clase ColorCombinatorApp');
+      return false;
+    }
+    
+    // Crear e inicializar la aplicación
+    const app = new ColorCombinatorApp();
+    const initResult = app.init();
+    
+    console.log('✅ Aplicación inicializada correctamente');
+    return true;
+  } catch (error) {
+    console.error('❌ Error en la inicialización manual:', error);
+    console.error('Detalles del error:', error.message);
+    console.error('Stack trace:', error.stack);
+    return false;
+  }
+};
+
+// Verificar si hay errores específicos cargando los módulos básicos
 try {
   import('./js/config.js')
     .then(module => {
       console.log('✅ Módulo config.js cargado correctamente');
       
-      // Intentar cargar los demás módulos en secuencia
+      // Intentar cargar los demás módulos core en secuencia
       return import('./js/core/event-bus.js');
     })
     .then(module => {
       console.log('✅ Módulo event-bus.js cargado correctamente');
-      const { eventBus } = module;
-      
-      // Probar el event bus
-      eventBus.on('test', data => console.log('Evento de prueba recibido:', data));
-      eventBus.emit('test', { message: 'Esto funciona' });
-      
       return import('./js/core/service-locator.js');
     })
     .then(module => {
@@ -26,18 +54,8 @@ try {
     })
     .then(module => {
       console.log('✅ Módulo component.js cargado correctamente');
-      return import('./js/components/notification.js');
-    })
-    .then(module => {
-      console.log('✅ Módulo notification.js cargado correctamente');
-      return import('./js/components/color-picker.js');
-    })
-    .then(module => {
-      console.log('✅ Módulo color-picker.js cargado correctamente');
-      return import('./js/components/color-palette.js');
-    })
-    .then(module => {
-      console.log('✅ Módulo color-palette.js cargado correctamente');
+      
+      // Verificar utils
       return import('./js/utils/dom-utils.js');
     })
     .then(module => {
@@ -47,132 +65,36 @@ try {
     .then(module => {
       console.log('✅ Módulo color-utils.js cargado correctamente');
       
-      // Verificamos elementos DOM críticos
-      const colorInputs = document.getElementById('color-inputs');
-      console.log('Elemento color-inputs:', colorInputs);
-      
-      // Intentamos cargar app.js
-      return import('./js/app.js');
+      // Verificar componentes
+      return import('./js/components/notification.js');
     })
     .then(module => {
-      console.log('✅ Módulo app.js cargado correctamente');
+      console.log('✅ Módulo notification.js cargado correctamente');
+      
+      // Verificamos elementos DOM críticos
+      const colorInputs = document.getElementById('color-inputs');
+      console.log('Elemento color-inputs:', colorInputs ? '✅ Encontrado' : '❌ No encontrado');
+      const sidebar = document.getElementById('sidebar');
+      console.log('Elemento sidebar:', sidebar ? '✅ Encontrado' : '❌ No encontrado');
+      
+      console.log('Diagnóstico básico completado. Si la aplicación no funciona, usa el botón "Inicializar manualmente".');
     })
     .catch(error => {
       console.error('❌ Error al cargar módulos:', error);
       console.error('Mensaje de error:', error.message);
       console.error('Stack trace:', error.stack);
+      console.log('Recomendación: Usa el botón "Inicializar manualmente" para intentar cargar la versión corregida.');
     });
 } catch (error) {
   console.error('❌ Error en el nivel superior:', error);
 }
 
-// Función para inicializar manualmente si todo falla
-window.initApp = async function() {
-  console.log('Iniciando manualmente...');
-  
-  try {
-    const configModule = await import('./js/config.js');
-    const eventBusModule = await import('./js/core/event-bus.js');
-    const serviceLocatorModule = await import('./js/core/service-locator.js');
-    
-    const { config } = configModule;
-    const { eventBus } = eventBusModule;
-    const { serviceLocator } = serviceLocatorModule;
-    
-    // Cargar servicios
-    const ThemeServiceModule = await import('./js/services/theme-service.js');
-    const ExportServiceModule = await import('./js/services/export-service.js');
-    const WcagServiceModule = await import('./js/services/wcag-service.js');
-    const UrlServiceModule = await import('./js/services/url-service.js');
-    
-    serviceLocator.register('theme', new ThemeServiceModule.ThemeService());
-    serviceLocator.register('export', new ExportServiceModule.ExportService());
-    serviceLocator.register('wcag', new WcagServiceModule.WcagService());
-    serviceLocator.register('url', new UrlServiceModule.UrlService());
-    
-    // Inicializar tema
-    serviceLocator.get('theme').init();
-    
-    // Cargar modelos
-    const PaletteModelModule = await import('./js/models/palette-model.js');
-    const paletteModel = new PaletteModelModule.PaletteModel();
-    
-    // Cargar componentes
-    const NotificationManagerModule = await import('./js/components/notification.js');
-    const ColorPaletteModule = await import('./js/components/color-palette.js');
-    
-    // Crear componentes
-    const notificationContainer = document.getElementById('notification-container') || 
-      document.createElement('div');
-    if (!notificationContainer.id) {
-      notificationContainer.id = 'notification-container';
-      notificationContainer.className = 'notification-container';
-      document.body.appendChild(notificationContainer);
-    }
-    
-    const notificationManager = new NotificationManagerModule.NotificationManager(notificationContainer);
-    
-    // Mostrar notificación de diagnóstico
-    eventBus.emit('notification', {
-      title: 'Diagnóstico',
-      message: 'Inicialización manual ejecutada correctamente',
-      type: 'info'
-    });
-    
-    const colorInputs = document.getElementById('color-inputs');
-    if (colorInputs) {
-      const colorPalette = new ColorPaletteModule.ColorPalette(
-        colorInputs,
-        {
-          allowRemove: true,
-          minColors: config.ui.minColors,
-          onColorsChange: (data) => {
-            console.log('Cambio en paleta:', data);
-            
-            // Actualizar modelo según el tipo de cambio
-            switch (data.type) {
-              case 'add':
-                // Ya está manejado por el componente
-                break;
-              case 'remove':
-                paletteModel.removeColor(data.color.id);
-                break;
-              case 'update':
-                paletteModel.updateColor(data.color.id, data.color.color);
-                break;
-            }
-          }
-        }
-      );
-      
-      // Cargar colores iniciales
-      const initialColors = config.initialColors.map(hex => ({ color: hex }));
-      paletteModel.setColors(initialColors);
-      colorPalette.setColors(paletteModel.getColors());
-      
-      console.log('✅ Componentes inicializados correctamente');
-    } else {
-      console.error('❌ No se encontró el elemento #color-inputs');
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('❌ Error en la inicialización manual:', error);
-    return false;
-  }
-};
-
-// Verificar si hay errores de CORS
-console.log('Verificando entorno de ejecución:');
-console.log('- Location:', window.location.href);
-console.log('- Protocol:', window.location.protocol);
-console.log('- CORS compatible:', window.location.protocol !== 'file:');
-
 // Comprobación de la estructura DOM
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM completamente cargado');
   console.log('Elementos críticos:');
-  console.log('- color-inputs:', document.getElementById('color-inputs'));
-  console.log('- sidebar:', document.getElementById('sidebar'));
-  console.log('- notification-container:', document.getElementById('notification-container'));
+  console.log('- color-inputs:', document.getElementById('color-inputs') ? '✅ OK' : '❌ No encontrado');
+  console.log('- sidebar:', document.getElementById('sidebar') ? '✅ OK' : '❌ No encontrado');
+  console.log('- notification-container:', document.getElementById('notification-container') ? '✅ OK' : '❌ No encontrado');
+  console.log('- main:', document.getElementById('main') ? '✅ OK' : '❌ No encontrado');
 });
