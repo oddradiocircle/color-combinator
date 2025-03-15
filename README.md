@@ -27,6 +27,29 @@ https://colorcombinator.gomezpadilla.com/#FF5252-4CAF50-2196F3-FFC107-9C27B0
 
 También puedes copiar paletas desde Coolors.co e importarlas directamente.
 
+## Desarrollo Local
+
+Para ejecutar Color Combinator en tu entorno local:
+
+1. Clona el repositorio:
+   ```bash
+   git clone https://github.com/oddradiocircle/color-combinator.git
+   cd color-combinator
+   ```
+
+2. Inicia un servidor local. Puedes usar Python:
+   ```bash
+   python -m http.server
+   ```
+   O con Node.js:
+   ```bash
+   npx serve
+   ```
+
+3. Abre tu navegador en `http://localhost:8000`
+
+4. Si encuentras algún problema, puedes usar el panel de diagnóstico que aparece en la esquina inferior derecha para inicializar manualmente la aplicación.
+
 ## Arquitectura Modular
 
 Color Combinator está construido con una arquitectura modular basada en ES Modules, siguiendo los principios de separación de responsabilidades y componentes reutilizables:
@@ -39,6 +62,7 @@ color-combinator/
 │   └── styles.css
 ├── js/
 │   ├── app.js                 # Punto de entrada principal
+│   ├── app-fix.js             # Versión alternativa con mejor manejo de errores
 │   ├── config.js              # Configuración centralizada
 │   ├── core/                  # Infraestructura central 
 │   │   ├── event-bus.js       # Sistema de eventos
@@ -53,11 +77,14 @@ color-combinator/
 │   │   ├── wcag-service.js    # Cálculos de accesibilidad
 │   │   └── url-service.js     # Manejo de URL
 │   ├── components/            # Componentes UI
+│   │   ├── color-palette.js   # Paleta de colores
+│   │   ├── color-picker.js    # Selector de color
 │   │   └── notification.js    # Sistema de notificaciones
 │   └── utils/                 # Funciones utilitarias
 │       ├── color-utils.js     # Utilidades de color
 │       ├── dom-utils.js       # Manipulación del DOM
 │       └── storage-utils.js   # Persistencia en localStorage
+├── debug.js                   # Script de diagnóstico
 ├── index.html
 ├── LICENSE
 └── README.md
@@ -79,6 +106,16 @@ color-combinator/
 - **Extensibilidad**: Fácil añadir nuevos componentes o servicios
 - **Mantenibilidad**: Código organizado y bien documentado
 - **Reutilización**: Componentes y utilidades reutilizables
+
+## Solución de problemas
+
+Si la aplicación no funciona correctamente:
+
+1. **Verifica la consola del navegador** para errores
+2. **Usa el panel de diagnóstico** en la esquina inferior derecha
+3. **Inicializa manualmente** la aplicación con el botón correspondiente
+4. Asegúrate de **no estar usando `file://`** para acceder a la aplicación
+5. **Borra la caché** del navegador si actualizaste recientemente
 
 ## Contribuir
 
