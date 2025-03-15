@@ -9,6 +9,19 @@
  * @returns {Object} Objeto con propiedades r, g, b
  */
 export function hexToRgb(hex) {
+  // Verificar que hex no sea nulo o indefinido
+  if (!hex) {
+    console.warn('hexToRgb recibió un valor inválido:', hex);
+    // Valor por defecto en caso de recibir un valor inválido
+    return { r: 0, g: 0, b: 0 };
+  }
+  
+  // Asegurarse de que sea una cadena
+  if (typeof hex !== 'string') {
+    console.warn('hexToRgb recibió un tipo incorrecto:', typeof hex);
+    hex = String(hex);
+  }
+  
   // Normalizar el valor hex
   hex = hex.replace(/^#/, '');
   
@@ -17,11 +30,28 @@ export function hexToRgb(hex) {
     hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
   }
   
-  const r = parseInt(hex.slice(0, 2), 16);
-  const g = parseInt(hex.slice(2, 4), 16);
-  const b = parseInt(hex.slice(4, 6), 16);
+  // Verificar que después de la normalización tengamos 6 caracteres
+  if (hex.length !== 6) {
+    console.warn('hexToRgb: formato hexadecimal inválido, se esperaban 6 caracteres:', hex);
+    return { r: 0, g: 0, b: 0 };
+  }
   
-  return { r, g, b };
+  try {
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    
+    // Verificar que se obtuvieron valores numéricos válidos
+    if (isNaN(r) || isNaN(g) || isNaN(b)) {
+      console.warn('hexToRgb: valores RGB inválidos para hex', hex);
+      return { r: 0, g: 0, b: 0 };
+    }
+    
+    return { r, g, b };
+  } catch (error) {
+    console.error('Error al convertir hex a RGB:', error);
+    return { r: 0, g: 0, b: 0 };
+  }
 }
 
 /**
@@ -32,6 +62,11 @@ export function hexToRgb(hex) {
  * @returns {string} Color en formato hexadecimal (#RRGGBB)
  */
 export function rgbToHex(r, g, b) {
+  // Validar valores de entrada
+  r = Math.max(0, Math.min(255, Math.round(r || 0)));
+  g = Math.max(0, Math.min(255, Math.round(g || 0)));
+  b = Math.max(0, Math.min(255, Math.round(b || 0)));
+  
   return `#${((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1).toUpperCase()}`;
 }
 
@@ -43,9 +78,10 @@ export function rgbToHex(r, g, b) {
  * @returns {Object} Objeto con propiedades h (0-360), s (0-100), l (0-100)
  */
 export function rgbToHsl(r, g, b) {
-  r /= 255;
-  g /= 255;
-  b /= 255;
+  // Validar valores de entrada
+  r = Math.max(0, Math.min(255, Math.round(r || 0))) / 255;
+  g = Math.max(0, Math.min(255, Math.round(g || 0))) / 255;
+  b = Math.max(0, Math.min(255, Math.round(b || 0))) / 255;
   
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
@@ -61,6 +97,7 @@ export function rgbToHsl(r, g, b) {
       case r: h = (g - b) / d + (g < b ? 6 : 0); break;
       case g: h = (b - r) / d + 2; break;
       case b: h = (r - g) / d + 4; break;
+      default: h = 0;
     }
     
     h /= 6;
@@ -81,9 +118,10 @@ export function rgbToHsl(r, g, b) {
  * @returns {Object} Objeto con propiedades r, g, b (0-255)
  */
 export function hslToRgb(h, s, l) {
-  h /= 360;
-  s /= 100;
-  l /= 100;
+  // Validar valores de entrada
+  h = Math.max(0, Math.min(360, h || 0)) / 360;
+  s = Math.max(0, Math.min(100, s || 0)) / 100;
+  l = Math.max(0, Math.min(100, l || 0)) / 100;
   
   let r, g, b;
   
@@ -120,6 +158,13 @@ export function hslToRgb(h, s, l) {
  * @returns {number} Luminancia (0-1)
  */
 export function getLuminance(hex) {
+  // Validar el valor de entrada
+  if (!hex || typeof hex !== 'string') {
+    console.warn('getLuminance recibió un valor inválido:', hex);
+    return 0;
+  }
+  
+  // Usar el hexToRgb mejorado que maneja errores
   const rgb = hexToRgb(hex);
   
   const rsrgb = rgb.r / 255;
@@ -140,6 +185,12 @@ export function getLuminance(hex) {
  * @returns {number} Ratio de contraste (1-21)
  */
 export function calculateContrastRatio(color1, color2) {
+  // Validar los valores de entrada
+  if (!color1 || !color2) {
+    console.warn('calculateContrastRatio recibió valores inválidos:', color1, color2);
+    return 1; // Valor mínimo de contraste
+  }
+  
   const l1 = getLuminance(color1);
   const l2 = getLuminance(color2);
   
@@ -151,12 +202,17 @@ export function calculateContrastRatio(color1, color2) {
  * @returns {string} Color en formato hexadecimal
  */
 export function generateRandomColor() {
-  const h = Math.floor(Math.random() * 360);
-  const s = Math.floor(Math.random() * 30) + 70; // 70-100% saturación
-  const l = Math.floor(Math.random() * 30) + 35; // 35-65% luminosidad
-  
-  const hslRgb = hslToRgb(h, s, l);
-  return rgbToHex(hslRgb.r, hslRgb.g, hslRgb.b);
+  try {
+    const h = Math.floor(Math.random() * 360);
+    const s = Math.floor(Math.random() * 30) + 70; // 70-100% saturación
+    const l = Math.floor(Math.random() * 30) + 35; // 35-65% luminosidad
+    
+    const hslRgb = hslToRgb(h, s, l);
+    return rgbToHex(hslRgb.r, hslRgb.g, hslRgb.b);
+  } catch (error) {
+    console.error('Error al generar color aleatorio:', error);
+    return '#FF5252'; // Color por defecto en caso de error
+  }
 }
 
 /**
@@ -167,27 +223,48 @@ export function generateRandomColor() {
  * @returns {string} Color formateado
  */
 export function formatColor(hexColor, format, alpha = 0) {
-  const rgb = hexToRgb(hexColor);
+  // Validar los valores de entrada
+  if (!hexColor) {
+    console.warn('formatColor recibió un color inválido:', hexColor);
+    hexColor = '#000000'; // Color negro por defecto
+  }
   
-  switch (format) {
-    case 'hex':
-      return hexColor.toUpperCase();
-    case 'rgb':
-      return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
-    case 'rgba':
-      return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${(100 - alpha) / 100})`;
-    case 'hsl': {
-      const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-      return `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
+  // Si el formato no es válido, usar 'hex' como valor por defecto
+  if (!['hex', 'rgb', 'rgba', 'hsl', 'hsla', 'hexa'].includes(format)) {
+    console.warn('formatColor recibió un formato inválido:', format);
+    format = 'hex';
+  }
+  
+  // Validar alpha
+  alpha = Math.max(0, Math.min(100, alpha || 0));
+  
+  try {
+    const rgb = hexToRgb(hexColor);
+    
+    switch (format) {
+      case 'hex':
+        return hexColor.toUpperCase();
+      case 'rgb':
+        return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+      case 'rgba':
+        return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${(100 - alpha) / 100})`;
+      case 'hsl': {
+        const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+        return `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
+      }
+      case 'hsla': {
+        const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+        return `hsla(${hsl.h}, ${hsl.s}%, ${hsl.l}%, ${(100 - alpha) / 100})`;
+      }
+      case 'hexa': {
+        const alphaHex = Math.round((100 - alpha) * 255 / 100).toString(16).padStart(2, '0');
+        return `${hexColor.toUpperCase()}${alphaHex}`;
+      }
+      default:
+        return hexColor.toUpperCase();
     }
-    case 'hsla': {
-      const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-      return `hsla(${hsl.h}, ${hsl.s}%, ${hsl.l}%, ${(100 - alpha) / 100})`;
-    }
-    case 'hexa':
-      const alphaHex = Math.round((100 - alpha) * 255 / 100).toString(16).padStart(2, '0');
-      return `${hexColor.toUpperCase()}${alphaHex}`;
-    default:
-      return hexColor.toUpperCase();
+  } catch (error) {
+    console.error('Error al formatear color:', error);
+    return hexColor || '#000000';
   }
 }
