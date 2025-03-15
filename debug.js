@@ -29,7 +29,7 @@ window.initApp = async function() {
     const ThemeServiceModule = await import('./js/services/theme-service.js');
     const ExportServiceModule = await import('./js/services/export-service.js');
     const WcagServiceModule = await import('./js/services/wcag-service.js');
-    const UrlServiceModule = await import('./js/services/url-service.js');
+    const UrlServiceFixedModule = await import('./js/services/url-service-fixed.js');
     
     // Importar modelos
     const PaletteModelModule = await import('./js/models/palette-model.js');
@@ -63,7 +63,7 @@ window.initApp = async function() {
     serviceLocator.register('theme', new ThemeServiceModule.ThemeService());
     serviceLocator.register('export', new ExportServiceModule.ExportService());
     serviceLocator.register('wcag', new WcagServiceModule.WcagService());
-    serviceLocator.register('url', new UrlServiceModule.UrlService());
+    serviceLocator.register('url', new UrlServiceFixedModule.UrlService());
     
     // Aplicar tema
     serviceLocator.get('theme').init();
@@ -242,6 +242,15 @@ window.initApp = async function() {
         }
       }
     }
+    
+    // Actualizar URL con los colores
+    const urlService = serviceLocator.get('url');
+    urlService.updateUrlWithColors(colors);
+    
+    // Configurar eventos
+    eventBus.on('palette:updated', (updatedColors) => {
+      urlService.updateUrlWithColors(updatedColors);
+    });
     
     // Notificar éxito
     eventBus.emit('notification', {
