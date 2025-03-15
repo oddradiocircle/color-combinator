@@ -36,6 +36,9 @@ class ColorCombinatorApp {
     
     // Configurar eventos globales
     this._setupEvents();
+    
+    // Corrección para SVG viewBox (bug-fix)
+    this._fixSvgViewbox();
   }
   
   /**
@@ -50,6 +53,57 @@ class ColorCombinatorApp {
     
     // Configurar elementos UI
     this._setupUIElements();
+  }
+  
+  /**
+   * Corrige problemas de SVG viewBox que usan porcentajes
+   * @private
+   */
+  _fixSvgViewbox() {
+    // Crear un observador de mutaciones para corregir SVGs en tiempo real
+    const observer = new MutationObserver(mutations => {
+      for (const mutation of mutations) {
+        if (mutation.addedNodes.length) {
+          mutation.addedNodes.forEach(node => {
+            if (node.tagName === 'svg') {
+              this._checkAndFixSVG(node);
+            } else if (node.querySelectorAll) {
+              node.querySelectorAll('svg').forEach(svg => {
+                this._checkAndFixSVG(svg);
+              });
+            }
+          });
+        }
+      }
+    });
+    
+    // Configurar y comenzar el observador
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    
+    // Comprobar SVGs existentes
+    document.querySelectorAll('svg').forEach(svg => {
+      this._checkAndFixSVG(svg);
+    });
+  }
+  
+  /**
+   * Verifica y corrige atributos viewBox en elementos SVG
+   * @private
+   * @param {SVGElement} svg - Elemento SVG a corregir
+   */
+  _checkAndFixSVG(svg) {
+    const viewBox = svg.getAttribute('viewBox');
+    if (viewBox && viewBox.includes('%')) {
+      // Reemplazar porcentajes con valores numéricos
+      const newViewBox = viewBox.replace(/(\d+)%/g, (match, p1) => {
+        return parseInt(p1, 10);
+      });
+      svg.setAttribute('viewBox', newViewBox);
+      console.log('SVG viewBox corregido:', viewBox, '->', newViewBox);
+    }
   }
   
   /**
