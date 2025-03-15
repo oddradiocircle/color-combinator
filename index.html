@@ -18,6 +18,81 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
     
     <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* Estilos para modal de diagnóstico */
+        .debug-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-family: 'Poppins', sans-serif;
+            max-width: 300px;
+            transition: all 0.3s ease;
+        }
+        
+        .debug-panel.dark {
+            background-color: rgba(40, 40, 40, 0.9);
+            color: #fff;
+            border-color: #444;
+        }
+        
+        .debug-panel button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        
+        .debug-panel button:hover {
+            background: #3e8e41;
+        }
+        
+        .debug-panel button.error {
+            background: #f44336;
+        }
+        
+        .debug-panel button.error:hover {
+            background: #d32f2f;
+        }
+        
+        .debug-panel-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .debug-panel-info {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 8px;
+        }
+        
+        .debug-toggle {
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            color: inherit;
+        }
+    </style>
 </head>
 <body>
     <div id="app-container">
@@ -217,7 +292,90 @@
     
     <div id="lightbox-overlay" class="lightbox-overlay"></div>
     
+    <!-- Panel de diagnóstico -->
+    <div class="debug-panel" id="debug-panel">
+        <div class="debug-panel-title">
+            Herramientas de diagnóstico
+            <button class="debug-toggle" id="debug-toggle">
+                <span class="material-symbols-outlined">expand_less</span>
+            </button>
+        </div>
+        <div class="debug-panel-info">
+            Si la aplicación no responde, intenta inicializar manualmente.
+        </div>
+        <button id="manual-init">
+            <span class="material-symbols-outlined">play_arrow</span>
+            Inicializar manualmente
+        </button>
+        <button id="reload-page">
+            <span class="material-symbols-outlined">refresh</span>
+            Recargar página
+        </button>
+    </div>
+    
     <!-- Cambiado de script normal a módulo ES -->
     <script type="module" src="js/app.js"></script>
+    
+    <!-- Script de diagnóstico -->
+    <script type="module" src="debug.js"></script>
+    
+    <!-- Script para panel de diagnóstico -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const debugPanel = document.getElementById('debug-panel');
+            const debugToggle = document.getElementById('debug-toggle');
+            const debugPanelContent = Array.from(debugPanel.children).slice(1);
+            const manualInitBtn = document.getElementById('manual-init');
+            const reloadBtn = document.getElementById('reload-page');
+            
+            // Toggle panel
+            debugToggle.addEventListener('click', function() {
+                const icon = debugToggle.querySelector('.material-symbols-outlined');
+                const isCollapsed = icon.textContent === 'expand_more';
+                
+                icon.textContent = isCollapsed ? 'expand_less' : 'expand_more';
+                
+                debugPanelContent.forEach(el => {
+                    el.style.display = isCollapsed ? 'block' : 'none';
+                });
+            });
+            
+            // Manual init
+            manualInitBtn.addEventListener('click', function() {
+                if (typeof window.initApp === 'function') {
+                    window.initApp()
+                        .then(success => {
+                            if (success) {
+                                manualInitBtn.textContent = '✅ Inicialización correcta';
+                                manualInitBtn.disabled = true;
+                            } else {
+                                manualInitBtn.textContent = '❌ Falló la inicialización';
+                                manualInitBtn.classList.add('error');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error en inicialización manual:', error);
+                            manualInitBtn.textContent = '❌ Error de inicialización';
+                            manualInitBtn.classList.add('error');
+                        });
+                } else {
+                    console.error('Función de inicialización no disponible');
+                    manualInitBtn.textContent = '❌ Función no disponible';
+                    manualInitBtn.classList.add('error');
+                }
+            });
+            
+            // Reload page
+            reloadBtn.addEventListener('click', function() {
+                window.location.reload();
+            });
+            
+            // Detect theme
+            const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (isDarkMode) {
+                debugPanel.classList.add('dark');
+            }
+        });
+    </script>
 </body>
 </html>
