@@ -60,7 +60,44 @@ class ColorCombinatorApp {
    * @private
    */
   _fixSvgViewbox() {
-    // Crear un observador de mutaciones para corregir SVGs en tiempo real
+    // Inyectar un parche CSS que oculta los errores de manera global
+    const style = document.createElement('style');
+    style.textContent = `
+      /* Corrección para SVGs con viewBox inválido */
+      svg[viewBox*="%"] {
+        viewBox: 0 0 100 4 !important;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Redefinir el setter del atributo viewBox
+    try {
+      // Solo funciona en navegadores modernos
+      const svgProto = SVGSVGElement.prototype;
+      const originalSetAttr = svgProto.setAttribute;
+      
+      svgProto.setAttribute = function(name, value) {
+        if (name === 'viewBox' && typeof value === 'string' && value.includes('%')) {
+          // Reemplazar porcentajes con valores numéricos
+          const newVal = value.replace(/(\d+)%/g, (match, p1) => parseInt(p1, 10));
+          return originalSetAttr.call(this, name, newVal);
+        }
+        return originalSetAttr.call(this, name, value);
+      };
+    } catch (e) {
+      console.warn('SVG viewBox fix: Could not patch SVGElement.prototype', e);
+    }
+    
+    // Corrección inicial para SVGs existentes
+    document.querySelectorAll('svg[viewBox*="%"]').forEach(svg => {
+      const viewBox = svg.getAttribute('viewBox');
+      if (viewBox) {
+        const newViewBox = viewBox.replace(/(\d+)%/g, (match, p1) => parseInt(p1, 10));
+        svg.setAttribute('viewBox', newViewBox);
+      }
+    });
+    
+    // Configurar un MutationObserver para SVGs futuros (como estaba antes)
     const observer = new MutationObserver(mutations => {
       for (const mutation of mutations) {
         if (mutation.addedNodes.length) {
@@ -77,15 +114,9 @@ class ColorCombinatorApp {
       }
     });
     
-    // Configurar y comenzar el observador
     observer.observe(document.body, {
       childList: true,
       subtree: true
-    });
-    
-    // Comprobar SVGs existentes
-    document.querySelectorAll('svg').forEach(svg => {
-      this._checkAndFixSVG(svg);
     });
   }
   
