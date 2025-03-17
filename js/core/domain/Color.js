@@ -1,34 +1,3 @@
-class Color {
-  constructor(hex) {
-    if (!Color.isValidHex(hex)) {
-      throw new Error(`Invalid color code: ${hex}`);
-    }
-    this.hex = Color.normalizeHex(hex);
-  }
-
-  static isValidHex(hex) {
-    return /^#?([0-9A-F]{3}){1,2}$/i.test(hex);
-  }
-
-  static normalizeHex(hex) {
-    const cleanHex = hex.replace(/^#/, '').toUpperCase();
-    return `#${cleanHex.padStart(6, '0')}`;
-  }
-
-  toRGB() {
-    const hex = this.hex.replace(/^#/, '');
-    const bigint = parseInt(hex, 16);
-    return {
-      r: (bigint >> 16) & 255,
-      g: (bigint >> 8) & 255,
-      b: bigint & 255
-    };
-  }
-
-  toString() {
-    return this.hex;
-  }
-}
 /**
  * Representa un color en el espacio HEX
  * @class
@@ -101,11 +70,24 @@ export class Color {
     ];
   }
 
+  /**
+   * Convierte a formato RGB
+   * @returns {Object} Con propiedades r, g, b
+   */
+  toRGB() {
+    const [r, g, b] = this.rgbComponents();
+    return { r, g, b };
+  }
+
   toJSON() {
     return {
       hex: this.#hex,
       name: this.#name
     };
+  }
+
+  toString() {
+    return this.#hex;
   }
 
   get hex() { return this.#hex; }
