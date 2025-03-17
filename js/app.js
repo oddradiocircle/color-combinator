@@ -27,7 +27,7 @@ export class App {
     
     // Estado de la aplicación
     this.colors = [];
-    this.theme = 'light';
+    this.theme = this.loadThemePreference();
     
     // Referencia al elemento DOM principal
     this.appElement = null;
@@ -48,9 +48,6 @@ export class App {
       return;
     }
     
-    // Cargar tema guardado
-    this.loadSavedTheme();
-    
     // Renderizar la estructura básica de la UI
     this.renderBaseUI();
     
@@ -59,6 +56,9 @@ export class App {
     
     // Cargar colores iniciales (desde URL o valores por defecto)
     this.loadInitialColors();
+    
+    // Aplicar tema
+    this.applyTheme();
     
     this.log('Aplicación iniciada correctamente');
   }
@@ -73,21 +73,15 @@ export class App {
         <div id="sidebar" class="sidebar">
           <div class="sidebar-content">
             <section class="sidebar-section">
-              <h2>
-                <span class="material-symbols-outlined">palette</span>
-                Paleta de Colores
-              </h2>
+              <h2>Paleta de Colores</h2>
               <div id="color-palette" class="color-palette"></div>
               <button id="add-color" class="button primary">
-                <span class="material-symbols-outlined">add</span> Añadir Color
+                <span class="icon">+</span> Añadir Color
               </button>
             </section>
             
             <section class="sidebar-section">
-              <h2>
-                <span class="material-symbols-outlined">text_fields</span>
-                Opciones
-              </h2>
+              <h2>Opciones</h2>
               <div class="input-group">
                 <label for="text-input">Texto de Prueba</label>
                 <textarea id="text-input" placeholder="Ingresa texto para previsualizar">Color Combinator</textarea>
@@ -96,17 +90,13 @@ export class App {
               <div class="input-group">
                 <label for="coolors-url">URL de Coolors</label>
                 <input type="text" id="coolors-url" placeholder="https://coolors.co/ff5252-4caf50-2196f3">
-                <button id="import-coolors" class="button secondary" disabled>
-                  <span class="material-symbols-outlined">download</span> Importar
-                </button>
+                <button id="import-coolors" class="button secondary" disabled>Importar</button>
               </div>
               
               <div class="actions">
-                <button id="export-coolors" class="button outline">
-                  <span class="material-symbols-outlined">link</span> Exportar URL
-                </button>
-                <button id="toggle-theme" class="button icon-only" title="Cambiar tema">
-                  <span id="theme-icon" class="material-symbols-outlined">dark_mode</span>
+                <button id="export-coolors" class="button outline">Exportar URL</button>
+                <button id="toggle-theme" class="button icon-only">
+                  <span id="theme-icon">🌙</span>
                 </button>
               </div>
             </section>
@@ -124,29 +114,6 @@ export class App {
       
       <div id="notifications" class="notifications"></div>
     `;
-  }
-  
-  /**
-   * Carga el tema guardado del usuario
-   */
-  loadSavedTheme() {
-    try {
-      const savedTheme = localStorage.getItem('colorCombinator.theme');
-      if (savedTheme === 'dark' || savedTheme === 'light') {
-        this.theme = savedTheme;
-        if (this.theme === 'dark') {
-          document.body.classList.add('dark-theme');
-        }
-      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        // Si el sistema usa tema oscuro, lo usamos por defecto
-        this.theme = 'dark';
-        document.body.classList.add('dark-theme');
-      }
-    } catch (error) {
-      console.error('Error al cargar tema:', error);
-      // Usar tema claro por defecto
-      this.theme = 'light';
-    }
   }
   
   /**
@@ -201,10 +168,16 @@ export class App {
       this.colors = this.urlService.currentColors;
     } else {
       // Cargar colores por defecto
-      this.colors = this.config.defaultColors.map(hex => new Color(hex));
-      
-      // Actualizar URL
-      this.urlService.updateURL(this.colors);
+      try {
+        this.colors = this.config.defaultColors.map(hex => new Color(hex));
+        
+        // Actualizar URL
+        this.urlService.updateURL(this.colors);
+      } catch (error) {
+        console.error('Error al cargar colores por defecto:', error);
+        // Fallback a un solo color
+        this.colors = [new Color('#FF5252')];
+      }
     }
     
     // Renderizar paleta y combinaciones
@@ -231,12 +204,8 @@ export class App {
       
       colorElement.innerHTML = `
         <div class="color-item-actions">
-          <button class="icon-button edit-color" title="Editar color">
-            <span class="material-symbols-outlined">edit</span>
-          </button>
-          <button class="icon-button remove-color" title="Eliminar color">
-            <span class="material-symbols-outlined">delete</span>
-          </button>
+          <button class="icon-button edit-color" title="Editar color">✏️</button>
+          <button class="icon-button remove-color" title="Eliminar color">🗑️</button>
         </div>
         <div class="color-item-value">${color.hex}</div>
       `;
@@ -294,7 +263,7 @@ export class App {
     combination.style.backgroundColor = bgColor.hex;
     
     // Calcular contraste
-    const contrastRatio = this.calculateContrastRatio(bgColor.hex, textColor.hex);
+    const contrastRatio = this.colorService.calculateContrastRatio(bgColor, textColor);
     const isAANormal = contrastRatio >= 4.5;
     const isAAANormal = contrastRatio >= 7.0;
     
@@ -319,32 +288,6 @@ export class App {
   }
   
   /**
-   * Calcula el ratio de contraste entre dos colores (WCAG 2.1)
-   */
-  calculateContrastRatio(color1, color2) {
-    const getLuminance = (color) => {
-      // Convertir hex a RGB
-      const hex = color.replace('#', '');
-      const r = parseInt(hex.substr(0, 2), 16) / 255;
-      const g = parseInt(hex.substr(2, 2), 16) / 255;
-      const b = parseInt(hex.substr(4, 2), 16) / 255;
-      
-      // Calcular luminancia relativa
-      const R = r <= 0.03928 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
-      const G = g <= 0.03928 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
-      const B = b <= 0.03928 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
-      
-      return 0.2126 * R + 0.7152 * G + 0.0722 * B;
-    };
-    
-    const L1 = getLuminance(color1);
-    const L2 = getLuminance(color2);
-    
-    // Calcular ratio
-    return (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
-  }
-  
-  /**
    * Añade un color aleatorio a la paleta
    */
   addRandomColor() {
@@ -358,15 +301,17 @@ export class App {
     const newColor = this.hslToHex(h, s, l);
     
     // Añadir a la lista de colores
-    this.colors.push(new Color(newColor));
-    
-    // Actualizar UI y URL
-    this.renderColorPalette();
-    this.updateCombinations();
-    this.urlService.updateURL(this.colors);
-    
-    // Guardar en localStorage
-    this.saveColorsToStorage();
+    try {
+      this.colors.push(new Color(newColor));
+      
+      // Actualizar UI y URL
+      this.renderColorPalette();
+      this.updateCombinations();
+      this.urlService.updateURL(this.colors);
+    } catch (error) {
+      console.error('Error al añadir color aleatorio:', error);
+      this.showNotification('Error', 'No se pudo añadir el color', 'error');
+    }
   }
   
   /**
@@ -383,7 +328,6 @@ export class App {
         this.renderColorPalette();
         this.updateCombinations();
         this.urlService.updateURL(this.colors);
-        this.saveColorsToStorage();
       } catch(e) {
         this.showNotification('Error', 'Formato de color inválido', 'error');
       }
@@ -403,7 +347,6 @@ export class App {
     this.renderColorPalette();
     this.updateCombinations();
     this.urlService.updateURL(this.colors);
-    this.saveColorsToStorage();
   }
   
   /**
@@ -454,7 +397,6 @@ export class App {
       this.renderColorPalette();
       this.updateCombinations();
       this.urlService.updateURL(this.colors);
-      this.saveColorsToStorage();
       
       // Limpiar input y mostrar notificación
       urlInput.value = '';
@@ -517,43 +459,51 @@ export class App {
   }
   
   /**
-   * Cambia entre tema claro y oscuro
+   * Carga la preferencia de tema almacenada
+   * @returns {string} - 'light' o 'dark'
    */
-  toggleTheme() {
-    this.theme = this.theme === 'light' ? 'dark' : 'light';
+  loadThemePreference() {
+    try {
+      const savedTheme = localStorage.getItem('colorCombinator.theme');
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        return savedTheme;
+      }
+    } catch (error) {
+      console.error('Error al cargar preferencia de tema:', error);
+    }
     
+    // Si hay un error o no hay preferencia guardada, detectar preferencia del sistema
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
+  }
+  
+  /**
+   * Aplica el tema actual al DOM
+   */
+  applyTheme() {
     // Actualizar clase en el body
     document.body.classList.toggle('dark-theme', this.theme === 'dark');
     
     // Actualizar icono
     const themeIcon = document.getElementById('theme-icon');
     if (themeIcon) {
-      themeIcon.textContent = this.theme === 'dark' ? 'light_mode' : 'dark_mode';
-    }
-    
-    // Guardar preferencia
-    try {
-      localStorage.setItem('colorCombinator.theme', this.theme);
-    } catch (error) {
-      console.error('Error al guardar tema:', error);
+      themeIcon.textContent = this.theme === 'dark' ? '☀️' : '🌙';
     }
   }
   
   /**
-   * Guarda los colores actuales en localStorage
+   * Cambia entre tema claro y oscuro
    */
-  saveColorsToStorage() {
+  toggleTheme() {
+    this.theme = this.theme === 'light' ? 'dark' : 'light';
+    this.applyTheme();
+    
+    // Guardar preferencia de forma segura
     try {
-      // Convertir colores a formato serializable
-      const serializableColors = this.colors.map(color => ({
-        hex: color.hex,
-        name: color.name || ''
-      }));
-      
-      // Guardar en localStorage
-      localStorage.setItem('colorCombinator.colors', JSON.stringify(serializableColors));
+      localStorage.setItem('colorCombinator.theme', this.theme);
     } catch (error) {
-      console.error('Error al guardar colores:', error);
+      console.error('Error al guardar preferencia de tema:', error);
     }
   }
   
@@ -569,23 +519,10 @@ export class App {
     notification.className = `notification ${type}`;
     notification.id = `notification-${id}`;
     
-    // Seleccionar icono según tipo
-    let icon = 'info';
-    if (type === 'success') icon = 'check_circle';
-    if (type === 'error') icon = 'error';
-    if (type === 'warning') icon = 'warning';
-    
     notification.innerHTML = `
-      <div class="notification-icon">
-        <span class="material-symbols-outlined">${icon}</span>
-      </div>
-      <div class="notification-content">
-        <div class="notification-title">${title}</div>
-        <div class="notification-message">${message}</div>
-      </div>
-      <button class="notification-close">
-        <span class="material-symbols-outlined">close</span>
-      </button>
+      <div class="notification-title">${title}</div>
+      <div class="notification-message">${message}</div>
+      <button class="notification-close">×</button>
     `;
     
     container.appendChild(notification);
