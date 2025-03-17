@@ -560,3 +560,339 @@ export class App {
       this.showNotification('Error', 'No se pudieron importar los colores', 'error');
     }
   }
+  
+  /**
+   * Exporta la paleta actual como URL de Coolors
+   */
+  exportCoolorsUrl() {
+    if (this.colors.length === 0) {
+      this.showNotification('Error', 'No hay colores para exportar', 'error');
+      return;
+    }
+    
+    // Crear URL en formato Coolors
+    const colorString = this.colors.map(c => c.hex.substring(1)).join('-');
+    const url = `https://coolors.co/${colorString}`;
+    
+    // Copiar al portapapeles
+    navigator.clipboard.writeText(url)
+      .then(() => {
+        this.showNotification(
+          'URL copiada', 
+          'La URL de Coolors se ha copiado al portapapeles',
+          'success'
+        );
+      })
+      .catch(err => {
+        // Mostrar la URL en caso de error
+        this.showNotification('URL generada', url, 'info');
+      });
+  }
+  
+  /**
+   * Copia la paleta actual al portapapeles
+   */
+  copyPaletteToClipboard() {
+    if (this.colors.length === 0) {
+      this.showNotification('Error', 'No hay colores para copiar', 'error');
+      return;
+    }
+    
+    // Formatear colores como texto
+    const colorText = this.colors.map(c => c.hex).join(', ');
+    
+    // Copiar al portapapeles
+    navigator.clipboard.writeText(colorText)
+      .then(() => {
+        this.showNotification('Paleta copiada', 'Los colores se han copiado al portapapeles', 'success');
+      })
+      .catch(err => {
+        this.showNotification('Error al copiar', 'No se pudo copiar al portapapeles', 'error');
+      });
+  }
+  
+  /**
+   * Valida el formato de una URL de Coolors
+   */
+  validateCoolorsUrl(url) {
+    const isValid = url && 
+      (url.includes('coolors.co/') || /^[0-9A-Fa-f#]+-[0-9A-Fa-f#]+/.test(url));
+    
+    // Actualizar estado del botón de importación
+    const importButton = document.getElementById('import-coolors');
+    if (importButton) {
+      importButton.disabled = !isValid;
+    }
+    
+    return isValid;
+  }
+  
+  /**
+   * Carga la preferencia de tema almacenada
+   * @returns {string} - 'light' o 'dark'
+   */
+  loadThemePreference() {
+    try {
+      const savedTheme = localStorage.getItem('colorCombinator.theme');
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        return savedTheme;
+      }
+    } catch (error) {
+      console.error('Error al cargar preferencia de tema:', error);
+    }
+    
+    // Si hay un error o no hay preferencia guardada, detectar preferencia del sistema
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
+  }
+  
+  /**
+   * Aplica el tema actual al DOM
+   */
+  applyTheme() {
+    // Actualizar clase en el body
+    document.body.classList.toggle('dark-theme', this.theme === 'dark');
+    
+    // Actualizar icono
+    const themeIcon = document.querySelector('#theme-toggle .material-symbols-outlined');
+    if (themeIcon) {
+      themeIcon.textContent = this.theme === 'dark' ? 'light_mode' : 'dark_mode';
+    }
+  }
+  
+  /**
+   * Cambia entre tema claro y oscuro
+   */
+  toggleTheme() {
+    this.theme = this.theme === 'light' ? 'dark' : 'light';
+    this.applyTheme();
+    
+    // Guardar preferencia de forma segura
+    try {
+      localStorage.setItem('colorCombinator.theme', this.theme);
+    } catch (error) {
+      console.error('Error al guardar preferencia de tema:', error);
+    }
+  }
+  
+  /**
+   * Muestra una notificación
+   */
+  showNotification(title, message, type = 'info') {
+    const container = document.getElementById('notifications');
+    if (!container) return;
+    
+    const id = Date.now();
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.id = `notification-${id}`;
+    
+    // Icono según el tipo
+    let icon;
+    switch (type) {
+      case 'success':
+        icon = 'check_circle';
+        break;
+      case 'error':
+        icon = 'error';
+        break;
+      case 'warning':
+        icon = 'warning';
+        break;
+      case 'info':
+      default:
+        icon = 'info';
+        break;
+    }
+    
+    notification.innerHTML = `
+      <div class="notification-icon">
+        <span class="material-symbols-outlined">${icon}</span>
+      </div>
+      <div class="notification-content">
+        <div class="notification-title">${title}</div>
+        <div class="notification-message">${message}</div>
+      </div>
+      <button class="notification-close">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    `;
+    
+    container.appendChild(notification);
+    
+    // Configurar botón de cierre
+    notification.querySelector('.notification-close').addEventListener('click', () => {
+      this.closeNotification(id);
+    });
+    
+    // Auto-cerrar después de 5 segundos
+    setTimeout(() => {
+      this.closeNotification(id);
+    }, 5000);
+  }
+  
+  /**
+   * Cierra una notificación
+   */
+  closeNotification(id) {
+    const notification = document.getElementById(`notification-${id}`);
+    if (notification) {
+      notification.classList.add('closing');
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 300);
+    }
+  }
+  
+  /**
+   * Abre un panel de corrección de contraste
+   */
+  openCorrectionPanel(combinationId, bgColor, textColor) {
+    // Implementación simplificada para esta fase
+    // En el futuro, implementar el panel con opciones de corrección automática
+    this.showNotification('Función en desarrollo', 'El corrector de contraste estará disponible próximamente', 'info');
+  }
+  
+  /**
+   * Muestra una combinación en modo lightbox
+   */
+  toggleLightbox(combinationId) {
+    const overlay = document.getElementById('lightbox-overlay');
+    const combination = document.getElementById(combinationId);
+    
+    if (!overlay || !combination) return;
+    
+    // Mostrar overlay
+    overlay.classList.add('visible');
+    
+    // Modificar combinación para mostrarla en modo lightbox
+    combination.classList.add('lightbox');
+    combination.style.position = 'fixed';
+    combination.style.top = '50%';
+    combination.style.left = '50%';
+    combination.style.transform = 'translate(-50%, -50%) scale(1.05)';
+    combination.style.zIndex = '950';
+    
+    // Cerrar al hacer clic en el overlay
+    overlay.addEventListener('click', () => {
+      this.closeLightbox(combinationId);
+    }, { once: true });
+  }
+  
+  /**
+   * Cierra el modo lightbox
+   */
+  closeLightbox(combinationId) {
+    const overlay = document.getElementById('lightbox-overlay');
+    const combination = document.querySelector('.combination-card.lightbox');
+    
+    if (!overlay || !combination) return;
+    
+    // Ocultar overlay
+    overlay.classList.remove('visible');
+    
+    // Restaurar combinación
+    combination.classList.remove('lightbox');
+    combination.style.position = '';
+    combination.style.top = '';
+    combination.style.left = '';
+    combination.style.transform = '';
+    combination.style.zIndex = '';
+  }
+  
+  /**
+   * Abre/cierra el menú móvil
+   */
+  toggleMobileMenu() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    const button = document.getElementById('mobile-menu-toggle');
+    const icon = button.querySelector('.material-symbols-outlined');
+    
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('visible');
+    
+    // Cambiar icono
+    icon.textContent = sidebar.classList.contains('open') ? 'close' : 'menu';
+  }
+  
+  /**
+   * Cierra el menú móvil
+   */
+  closeMobileMenu() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    const button = document.getElementById('mobile-menu-toggle');
+    const icon = button.querySelector('.material-symbols-outlined');
+    
+    sidebar.classList.remove('open');
+    overlay.classList.remove('visible');
+    icon.textContent = 'menu';
+  }
+  
+  /**
+   * Abre el modal de edición de color
+   */
+  openColorEditModal() {
+    const modal = document.getElementById('color-edit-modal');
+    if (modal) {
+      modal.classList.add('visible');
+    }
+  }
+  
+  /**
+   * Cierra el modal de edición de color
+   */
+  closeColorEditModal() {
+    const modal = document.getElementById('color-edit-modal');
+    if (modal) {
+      modal.classList.remove('visible');
+    }
+  }
+  
+  /**
+   * Convierte HSL a Hex
+   */
+  hslToHex(h, s, l) {
+    s /= 100;
+    l /= 100;
+    
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = l - c/2;
+    
+    let r, g, b;
+    
+    if (h < 60) {
+      [r, g, b] = [c, x, 0];
+    } else if (h < 120) {
+      [r, g, b] = [x, c, 0];
+    } else if (h < 180) {
+      [r, g, b] = [0, c, x];
+    } else if (h < 240) {
+      [r, g, b] = [0, x, c];
+    } else if (h < 300) {
+      [r, g, b] = [x, 0, c];
+    } else {
+      [r, g, b] = [c, 0, x];
+    }
+    
+    r = Math.round((r + m) * 255).toString(16).padStart(2, '0');
+    g = Math.round((g + m) * 255).toString(16).padStart(2, '0');
+    b = Math.round((b + m) * 255).toString(16).padStart(2, '0');
+    
+    return `#${r}${g}${b}`;
+  }
+  
+  /**
+   * Registra mensajes de depuración
+   */
+  log(...args) {
+    if (this.config.debug) {
+      console.log('[ColorCombinator]', ...args);
+    }
+  }
+}
