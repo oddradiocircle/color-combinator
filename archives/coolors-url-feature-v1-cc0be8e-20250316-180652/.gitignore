@@ -1,0 +1,20 @@
+<!-- filepath: /mnt/c/Users/danie/OneDrive/Documents/Vscode/color_combinator_app/.gitignore -->
+# Node modules
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDEs and editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
