@@ -32,9 +32,6 @@ export class App {
     // Referencia al elemento DOM principal
     this.appElement = null;
     
-    // Para debounce de operaciones costosas
-    this.updateCombinationsDebounce = null;
-    
     this.log('App inicializada con configuración:', this.config);
   }
   
@@ -51,14 +48,14 @@ export class App {
       return;
     }
     
+    // Cargar tema guardado
+    this.loadSavedTheme();
+    
     // Renderizar la estructura básica de la UI
     this.renderBaseUI();
     
     // Configurar eventos
     this.setupEventListeners();
-    
-    // Cargar tema guardado
-    this.loadSavedTheme();
     
     // Cargar colores iniciales (desde URL o valores por defecto)
     this.loadInitialColors();
@@ -108,7 +105,7 @@ export class App {
                 <button id="export-coolors" class="button outline">
                   <span class="material-symbols-outlined">link</span> Exportar URL
                 </button>
-                <button id="toggle-theme" class="button icon-only" aria-label="Cambiar tema">
+                <button id="toggle-theme" class="button icon-only" title="Cambiar tema">
                   <span id="theme-icon" class="material-symbols-outlined">dark_mode</span>
                 </button>
               </div>
@@ -130,86 +127,69 @@ export class App {
   }
   
   /**
+   * Carga el tema guardado del usuario
+   */
+  loadSavedTheme() {
+    try {
+      const savedTheme = localStorage.getItem('colorCombinator.theme');
+      if (savedTheme === 'dark' || savedTheme === 'light') {
+        this.theme = savedTheme;
+        if (this.theme === 'dark') {
+          document.body.classList.add('dark-theme');
+        }
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // Si el sistema usa tema oscuro, lo usamos por defecto
+        this.theme = 'dark';
+        document.body.classList.add('dark-theme');
+      }
+    } catch (error) {
+      console.error('Error al cargar tema:', error);
+      // Usar tema claro por defecto
+      this.theme = 'light';
+    }
+  }
+  
+  /**
    * Configura listeners de eventos para la aplicación
    */
   setupEventListeners() {
     // Evento para añadir nuevo color
-    const addColorBtn = document.getElementById('add-color');
-    if (addColorBtn) {
-      addColorBtn.addEventListener('click', this.debounce(() => {
-        this.addRandomColor();
-      }, 300));
-    }
+    document.getElementById('add-color').addEventListener('click', () => {
+      this.addRandomColor();
+    });
     
     // Evento para cambiar de tema
-    const themeToggleBtn = document.getElementById('toggle-theme');
-    if (themeToggleBtn) {
-      themeToggleBtn.addEventListener('click', this.debounce(() => {
-        this.toggleTheme();
-      }, 200));
-    }
+    document.getElementById('toggle-theme').addEventListener('click', () => {
+      this.toggleTheme();
+    });
     
     // Eventos para importar/exportar
-    const importBtn = document.getElementById('import-coolors');
-    if (importBtn) {
-      importBtn.addEventListener('click', this.debounce(() => {
-        this.importCoolorsUrl();
-      }, 300));
-    }
+    document.getElementById('import-coolors').addEventListener('click', () => {
+      this.importCoolorsUrl();
+    });
     
-    const exportBtn = document.getElementById('export-coolors');
-    if (exportBtn) {
-      exportBtn.addEventListener('click', this.debounce(() => {
-        this.exportCoolorsUrl();
-      }, 300));
-    }
+    document.getElementById('export-coolors').addEventListener('click', () => {
+      this.exportCoolorsUrl();
+    });
     
-    // Actualizar combinaciones al cambiar el texto (con debounce)
-    const textInput = document.getElementById('text-input');
-    if (textInput) {
-      textInput.addEventListener('input', this.debounce(() => {
-        this.updateCombinations();
-      }, 300));
-    }
+    // Actualizar combinaciones al cambiar el texto
+    document.getElementById('text-input').addEventListener('input', () => {
+      this.updateCombinations();
+    });
     
     // Validar URL de Coolors
-    const coolorsUrlInput = document.getElementById('coolors-url');
-    if (coolorsUrlInput) {
-      coolorsUrlInput.addEventListener('input', (e) => {
-        this.validateCoolorsUrl(e.target.value);
-      });
-    }
+    document.getElementById('coolors-url').addEventListener('input', (e) => {
+      this.validateCoolorsUrl(e.target.value);
+    });
     
     // Escuchar eventos de actualización de colores (desde URLService)
     window.addEventListener('colors-updated', (event) => {
       if (event.detail && Array.isArray(event.detail)) {
         this.colors = event.detail;
         this.renderColorPalette();
-        this.debouncedUpdateCombinations();
+        this.updateCombinations();
       }
     });
-  }
-  
-  /**
-   * Carga el tema guardado o detecta preferencia del sistema
-   */
-  loadSavedTheme() {
-    const savedTheme = localStorage.getItem('colorCombinator.theme');
-    
-    if (savedTheme) {
-      this.theme = savedTheme;
-    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      this.theme = 'dark';
-    }
-    
-    // Aplicar tema
-    document.body.classList.toggle('dark-theme', this.theme === 'dark');
-    
-    // Actualizar icono
-    const themeIcon = document.getElementById('theme-icon');
-    if (themeIcon) {
-      themeIcon.textContent = this.theme === 'dark' ? 'light_mode' : 'dark_mode';
-    }
   }
   
   /**
@@ -251,40 +231,27 @@ export class App {
       
       colorElement.innerHTML = `
         <div class="color-item-actions">
-          <button class="icon-button edit-color" title="Editar color" aria-label="Editar color">
+          <button class="icon-button edit-color" title="Editar color">
             <span class="material-symbols-outlined">edit</span>
           </button>
-          <button class="icon-button remove-color" title="Eliminar color" aria-label="Eliminar color">
+          <button class="icon-button remove-color" title="Eliminar color">
             <span class="material-symbols-outlined">delete</span>
           </button>
         </div>
         <div class="color-item-value">${color.hex}</div>
       `;
       
-      // Añadir eventos (con delegación para mejor rendimiento)
-      colorElement.addEventListener('click', (e) => {
-        if (e.target.closest('.edit-color')) {
-          this.editColor(index);
-        } else if (e.target.closest('.remove-color')) {
-          this.removeColor(index);
-        }
+      // Añadir eventos
+      colorElement.querySelector('.edit-color').addEventListener('click', () => {
+        this.editColor(index);
+      });
+      
+      colorElement.querySelector('.remove-color').addEventListener('click', () => {
+        this.removeColor(index);
       });
       
       paletteElement.appendChild(colorElement);
     });
-  }
-  
-  /**
-   * Actualiza las combinaciones de colores con debounce para rendimiento
-   */
-  debouncedUpdateCombinations() {
-    if (this.updateCombinationsDebounce) {
-      clearTimeout(this.updateCombinationsDebounce);
-    }
-    
-    this.updateCombinationsDebounce = setTimeout(() => {
-      this.updateCombinations();
-    }, 100);
   }
   
   /**
@@ -295,8 +262,6 @@ export class App {
     const container = document.getElementById('combinations-container');
     const text = document.getElementById('text-input').value || 'Color Combinator';
     
-    if (!container) return;
-    
     // Limpiar contenedor
     container.innerHTML = '';
     
@@ -306,28 +271,17 @@ export class App {
       return;
     }
     
-    // Optimización: crear un fragmento para todas las tarjetas
-    const fragment = document.createDocumentFragment();
-    
-    // Limitar número máximo de combinaciones para rendimiento
-    const maxCombinations = 30;
-    let combinationCount = 0;
-    
     // Generar combinaciones para cada par de colores
-    for (let i = 0; i < this.colors.length && combinationCount < maxCombinations; i++) {
-      for (let j = 0; j < this.colors.length && combinationCount < maxCombinations; j++) {
+    for (let i = 0; i < this.colors.length; i++) {
+      for (let j = 0; j < this.colors.length; j++) {
         if (i !== j) {
           const bgColor = this.colors[i];
           const textColor = this.colors[j];
           
-          this.createCombinationCard(fragment, bgColor, textColor, text);
-          combinationCount++;
+          this.createCombinationCard(container, bgColor, textColor, text);
         }
       }
     }
-    
-    // Añadir todas las tarjetas de una vez
-    container.appendChild(fragment);
   }
   
   /**
@@ -339,11 +293,8 @@ export class App {
     combination.className = 'combination-card';
     combination.style.backgroundColor = bgColor.hex;
     
-    // Calcular contraste (optimización: usar el método de Color si está disponible)
-    const contrastRatio = bgColor.contrastRatio 
-      ? bgColor.contrastRatio(textColor)
-      : this.calculateContrastRatio(bgColor.hex, textColor.hex);
-      
+    // Calcular contraste
+    const contrastRatio = this.calculateContrastRatio(bgColor.hex, textColor.hex);
     const isAANormal = contrastRatio >= 4.5;
     const isAAANormal = contrastRatio >= 7.0;
     
@@ -411,8 +362,11 @@ export class App {
     
     // Actualizar UI y URL
     this.renderColorPalette();
-    this.debouncedUpdateCombinations();
+    this.updateCombinations();
     this.urlService.updateURL(this.colors);
+    
+    // Guardar en localStorage
+    this.saveColorsToStorage();
   }
   
   /**
@@ -427,8 +381,9 @@ export class App {
       try {
         this.colors[index] = new Color(newValue);
         this.renderColorPalette();
-        this.debouncedUpdateCombinations();
+        this.updateCombinations();
         this.urlService.updateURL(this.colors);
+        this.saveColorsToStorage();
       } catch(e) {
         this.showNotification('Error', 'Formato de color inválido', 'error');
       }
@@ -446,8 +401,9 @@ export class App {
     
     this.colors.splice(index, 1);
     this.renderColorPalette();
-    this.debouncedUpdateCombinations();
+    this.updateCombinations();
     this.urlService.updateURL(this.colors);
+    this.saveColorsToStorage();
   }
   
   /**
@@ -496,8 +452,9 @@ export class App {
       // Actualizar paleta
       this.colors = newColors;
       this.renderColorPalette();
-      this.debouncedUpdateCombinations();
+      this.updateCombinations();
       this.urlService.updateURL(this.colors);
+      this.saveColorsToStorage();
       
       // Limpiar input y mostrar notificación
       urlInput.value = '';
@@ -575,7 +532,29 @@ export class App {
     }
     
     // Guardar preferencia
-    localStorage.setItem('colorCombinator.theme', this.theme);
+    try {
+      localStorage.setItem('colorCombinator.theme', this.theme);
+    } catch (error) {
+      console.error('Error al guardar tema:', error);
+    }
+  }
+  
+  /**
+   * Guarda los colores actuales en localStorage
+   */
+  saveColorsToStorage() {
+    try {
+      // Convertir colores a formato serializable
+      const serializableColors = this.colors.map(color => ({
+        hex: color.hex,
+        name: color.name || ''
+      }));
+      
+      // Guardar en localStorage
+      localStorage.setItem('colorCombinator.colors', JSON.stringify(serializableColors));
+    } catch (error) {
+      console.error('Error al guardar colores:', error);
+    }
   }
   
   /**
@@ -591,21 +570,10 @@ export class App {
     notification.id = `notification-${id}`;
     
     // Seleccionar icono según tipo
-    let icon;
-    switch (type) {
-      case 'success':
-        icon = 'check_circle';
-        break;
-      case 'error':
-        icon = 'error';
-        break;
-      case 'warning':
-        icon = 'warning';
-        break;
-      default:
-        icon = 'info';
-        break;
-    }
+    let icon = 'info';
+    if (type === 'success') icon = 'check_circle';
+    if (type === 'error') icon = 'error';
+    if (type === 'warning') icon = 'warning';
     
     notification.innerHTML = `
       <div class="notification-icon">
@@ -615,7 +583,7 @@ export class App {
         <div class="notification-title">${title}</div>
         <div class="notification-message">${message}</div>
       </div>
-      <button class="notification-close" aria-label="Cerrar notificación">
+      <button class="notification-close">
         <span class="material-symbols-outlined">close</span>
       </button>
     `;
@@ -680,18 +648,6 @@ export class App {
     b = Math.round((b + m) * 255).toString(16).padStart(2, '0');
     
     return `#${r}${g}${b}`;
-  }
-  
-  /**
-   * Función de debounce para limitar la frecuencia de llamadas a funciones
-   */
-  debounce(func, wait) {
-    let timeout;
-    return function(...args) {
-      const context = this;
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func.apply(context, args), wait);
-    };
   }
   
   /**
