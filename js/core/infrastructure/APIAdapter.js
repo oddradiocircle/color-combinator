@@ -1,53 +1,120 @@
+/**
+ * Adaptador para comunicación con APIs externas
+ * Proporciona capa de abstracción para llamadas HTTP
+ */
 export class APIAdapter {
-  constructor(baseURL = 'https://api.color-comb.com/v2') {
-    this.baseURL = baseURL;
-  }
-
-  async get(endpoint) {
-    const response = await fetch(`${this.baseURL}${endpoint}`);
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.status}`);
-    }
-    return response.json();
-  }
-
-  async post(endpoint, data) {
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    return response.json();
-  }
-}
-export default class APIAdapter {
+  /**
+   * @param {string} baseURL - URL base para todas las peticiones
+   */
   constructor(baseURL = 'https://api.color-combinations.com/v1') {
     this.baseURL = baseURL;
   }
 
+  /**
+   * Realiza una petición GET
+   * @param {string} endpoint - Ruta relativa a la baseURL
+   * @param {Object} params - Parámetros de consulta
+   * @returns {Promise<Object>} Respuesta parseada como JSON
+   */
   async get(endpoint, params = {}) {
-    // Implementación mock temporal
+    try {
+      // Durante desarrollo: usar simulación en lugar de API real
+      return this.mockResponse(endpoint, params);
+      
+      // Implementación real para producción (comentada por ahora)
+      /*
+      const url = new URL(`${this.baseURL}${endpoint}`);
+      
+      // Añadir parámetros a la URL
+      Object.keys(params).forEach(key => {
+        url.searchParams.append(key, params[key]);
+      });
+      
+      const response = await fetch(url.toString());
+      
+      if (!response.ok) {
+        throw new Error(`Error API: ${response.status} ${response.statusText}`);
+      }
+      
+      return response.json();
+      */
+    } catch (error) {
+      console.error('Error en solicitud GET:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Realiza una petición POST
+   * @param {string} endpoint - Ruta relativa a la baseURL
+   * @param {Object} data - Datos a enviar en el cuerpo
+   * @returns {Promise<Object>} Respuesta parseada como JSON
+   */
+  async post(endpoint, data = {}) {
+    try {
+      // Durante desarrollo: usar simulación
+      return this.mockResponse(endpoint, data);
+      
+      // Implementación real para producción (comentada por ahora)
+      /*
+      const response = await fetch(`${this.baseURL}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error API: ${response.status} ${response.statusText}`);
+      }
+      
+      return response.json();
+      */
+    } catch (error) {
+      console.error('Error en solicitud POST:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Genera respuestas simuladas para desarrollo
+   * @private
+   */
+  mockResponse(endpoint, params) {
+    // Simular latencia de red
     return new Promise((resolve) => {
       setTimeout(() => {
-        resolve({
-          base: params.color,
-          analogous: ['#ff0000', '#00ff00', '#0000ff'],
-          monochromatic: ['#ff3333', '#ff6666', '#ff9999'],
-          triad: ['#ff0000', '#ffff00', '#00ffff']
-        });
-      }, 500);
+        if (endpoint === '/combinations') {
+          resolve({
+            base: params.color || '#FF0000',
+            analogous: ['#FF3333', '#FF6666', '#FF9999'],
+            monochromatic: ['#FF0000', '#CC0000', '#990000'],
+            triad: ['#FF0000', '#00FF00', '#0000FF']
+          });
+        } else if (endpoint === '/convert') {
+          resolve({
+            success: true,
+            result: params.color || '#FF0000'
+          });
+        } else {
+          resolve({
+            success: false,
+            message: 'Endpoint no soportado en mock'
+          });
+        }
+      }, 300); // 300ms de latencia simulada
     });
   }
 
-  async post(endpoint, data) {
-    throw new Error('Método no implementado');
-  }
-
-  // Legacy HSLuv Converter Adapter
+  /**
+   * Crea un adaptador para compatibilidad con versiones antiguas
+   * @static
+   */
   static createLegacyAdapter() {
     return {
       hsluvToRgb: (h, s, l) => {
-        // Implementación mock temporal basada en la versión archive
+        // Implementación simplificada para compatibilidad
         return [
           Math.round(h * 2.55),
           Math.round(s * 2.55),
