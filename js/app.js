@@ -257,3 +257,306 @@ export class App {
       }
     });
   }
+  
+  /**
+   * Carga los colores iniciales, ya sea desde la URL o valores por defecto
+   */
+  loadInitialColors() {
+    // Si ya tenemos colores en la URL, URLService ya los habrá cargado
+    if (this.urlService.currentColors.length > 0) {
+      this.colors = this.urlService.currentColors;
+    } else {
+      // Cargar colores por defecto
+      try {
+        this.colors = this.config.defaultColors.map(hex => new Color(hex));
+        
+        // Actualizar URL
+        this.urlService.updateURL(this.colors);
+      } catch (error) {
+        console.error('Error al cargar colores por defecto:', error);
+        // Fallback a un solo color
+        this.colors = [new Color('#FF5252')];
+      }
+    }
+    
+    // Renderizar paleta y combinaciones
+    this.renderColorPalette();
+    this.updateCombinations();
+  }
+  
+  /**
+   * Renderiza la paleta de colores
+   */
+  renderColorPalette() {
+    const paletteElement = document.getElementById('color-palette');
+    if (!paletteElement) return;
+    
+    // Limpiar paleta actual
+    paletteElement.innerHTML = '';
+    
+    // Renderizar cada color
+    this.colors.forEach((color, index) => {
+      const colorElement = document.createElement('div');
+      colorElement.className = 'color-item';
+      colorElement.dataset.index = index;
+      colorElement.style.backgroundColor = color.hex;
+      
+      colorElement.innerHTML = `
+        <div class="color-item-actions">
+          <button class="icon-button edit-color" title="Editar color">
+            <span class="material-symbols-outlined">edit</span>
+          </button>
+          <button class="icon-button remove-color" title="Eliminar color">
+            <span class="material-symbols-outlined">delete</span>
+          </button>
+        </div>
+        <div class="color-item-value">${color.hex}</div>
+      `;
+      
+      // Añadir eventos
+      colorElement.querySelector('.edit-color').addEventListener('click', () => {
+        this.editColor(index);
+      });
+      
+      colorElement.querySelector('.remove-color').addEventListener('click', () => {
+        this.removeColor(index);
+      });
+      
+      paletteElement.appendChild(colorElement);
+    });
+  }
+  
+  /**
+   * Actualiza las combinaciones de colores
+   */
+  updateCombinations() {
+    // Implementación básica - esta función crecerá mucho más
+    const container = document.getElementById('combinations-container');
+    const text = document.getElementById('text-input').value || '<div>Color Combinator</div>';
+    
+    // Limpiar contenedor
+    container.innerHTML = '';
+    
+    // Si no hay suficientes colores, mostrar mensaje
+    if (this.colors.length < 2) {
+      container.innerHTML = '<div class="empty-state">Añade al menos dos colores para ver combinaciones</div>';
+      return;
+    }
+    
+    // Generar combinaciones para cada par de colores
+    for (let i = 0; i < this.colors.length; i++) {
+      for (let j = 0; j < this.colors.length; j++) {
+        if (i !== j) {
+          const bgColor = this.colors[i];
+          const textColor = this.colors[j];
+          
+          this.createCombinationCard(container, bgColor, textColor, text);
+        }
+      }
+    }
+  }
+  
+  /**
+   * Crea una tarjeta de combinación de colores
+   */
+  createCombinationCard(container, bgColor, textColor, content) {
+    const combinationId = `combination-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Crear elemento de combinación
+    const combination = document.createElement('div');
+    combination.className = 'combination-card';
+    combination.id = combinationId;
+    combination.dataset.bgColorId = bgColor.hex;
+    combination.dataset.textColorId = textColor.hex;
+    combination.style.backgroundColor = bgColor.hex;
+    
+    // Calcular contraste
+    const contrastRatio = this.colorService.calculateContrastRatio(bgColor, textColor);
+    const isAANormal = contrastRatio >= 4.5;
+    const isAAANormal = contrastRatio >= 7.0;
+    
+    combination.innerHTML = `
+      <div class="combination-text" style="color: ${textColor.hex}">${content}</div>
+      <div class="combination-info">
+        <div class="color-codes">
+          <span class="bg-color">
+            <span class="color-swatch" style="background-color: ${bgColor.hex}"></span>
+            ${bgColor.hex}
+          </span>
+          <span class="text-color">
+            <span class="color-swatch" style="background-color: ${textColor.hex}"></span>
+            ${textColor.hex}
+          </span>
+        </div>
+        <div class="contrast-info">
+          <span class="contrast-ratio">Contraste: ${contrastRatio.toFixed(2)}:1</span>
+          <div class="wcag-badges">
+            <span class="wcag-badge ${isAANormal ? 'pass' : 'fail'}">AA</span>
+            <span class="wcag-badge ${isAAANormal ? 'pass' : 'fail'}">AAA</span>
+            ${!isAANormal ? `
+              <button class="fix-wcag-btn" title="Corregir contraste">
+                <span class="material-symbols-outlined">auto_fix</span>
+              </button>
+            ` : ''}
+            <button class="fix-wcag-btn" title="Ver en modo lightbox">
+              <span class="material-symbols-outlined">visibility</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Configurar eventos
+    const lightboxButton = combination.querySelector('.material-symbols-outlined[title="Ver en modo lightbox"], .fix-wcag-btn[title="Ver en modo lightbox"]');
+    if (lightboxButton) {
+      lightboxButton.addEventListener('click', () => {
+        this.toggleLightbox(combinationId);
+      });
+    }
+    
+    const fixButton = combination.querySelector('.material-symbols-outlined[title="Corregir contraste"], .fix-wcag-btn[title="Corregir contraste"]');
+    if (fixButton) {
+      fixButton.addEventListener('click', () => {
+        this.openCorrectionPanel(combinationId, bgColor.hex, textColor.hex);
+      });
+    }
+    
+    container.appendChild(combination);
+  }
+  
+  /**
+   * Añade un color aleatorio a la paleta
+   */
+  addRandomColor() {
+    // Generar color aleatorio en HSL para mejor diversidad
+    const h = Math.floor(Math.random() * 360);
+    const s = Math.floor(Math.random() * 30) + 70; // 70-100% saturación
+    const l = Math.floor(Math.random() * 30) + 35; // 35-65% luminosidad
+    
+    // Convertir HSL a hex
+    const newColor = this.hslToHex(h, s, l);
+    
+    // Añadir a la lista de colores
+    try {
+      this.colors.push(new Color(newColor));
+      
+      // Actualizar UI y URL
+      this.renderColorPalette();
+      this.updateCombinations();
+      this.urlService.updateURL(this.colors);
+      
+      // Mostrar notificación
+      this.showNotification('Color añadido', `Se agregó el color ${newColor}`, 'success');
+    } catch (error) {
+      console.error('Error al añadir color aleatorio:', error);
+      this.showNotification('Error', 'No se pudo añadir el color', 'error');
+    }
+  }
+  
+  /**
+   * Edita un color existente
+   */
+  editColor(index) {
+    // Versión simplificada para la primera fase
+    // En el futuro se usará el modal de edición
+    const newValue = prompt('Ingresa un nuevo valor hexadecimal:', this.colors[index].hex);
+    
+    if (newValue) {
+      try {
+        const oldColor = this.colors[index].hex;
+        this.colors[index] = new Color(newValue);
+        this.renderColorPalette();
+        this.updateCombinations();
+        this.urlService.updateURL(this.colors);
+        
+        // Mostrar notificación
+        this.showNotification('Color editado', `Se cambió ${oldColor} por ${newValue}`, 'success');
+      } catch(e) {
+        this.showNotification('Error', 'Formato de color inválido', 'error');
+      }
+    }
+  }
+  
+  /**
+   * Elimina un color de la paleta
+   */
+  removeColor(index) {
+    if (this.colors.length <= 2) {
+      this.showNotification('No se puede eliminar', 'Se necesitan al menos dos colores', 'warning');
+      return;
+    }
+    
+    const removedColor = this.colors[index].hex;
+    this.colors.splice(index, 1);
+    this.renderColorPalette();
+    this.updateCombinations();
+    this.urlService.updateURL(this.colors);
+    
+    // Mostrar notificación
+    this.showNotification('Color eliminado', `Se eliminó el color ${removedColor}`, 'info');
+  }
+  
+  /**
+   * Importa colores desde una URL de Coolors
+   */
+  importCoolorsUrl() {
+    const urlInput = document.getElementById('coolors-url');
+    const url = urlInput.value.trim();
+    
+    if (!this.validateCoolorsUrl(url)) {
+      this.showNotification('Error de importación', 'URL inválida', 'error');
+      return;
+    }
+    
+    try {
+      // Extraer colores de la URL
+      const urlSegments = url.split('/');
+      const colorString = urlSegments[urlSegments.length - 1];
+      
+      // Limpiar posibles parámetros
+      const cleanColorString = colorString.split('?')[0].split('#')[0];
+      
+      // Separar colores
+      const colorCodes = cleanColorString.split('-');
+      
+      // Validar y convertir
+      const newColors = [];
+      
+      for (const code of colorCodes) {
+        if (code && code.length) {
+          const hex = code.startsWith('#') ? code : `#${code}`;
+          
+          try {
+            newColors.push(new Color(hex));
+          } catch(e) {
+            console.error('Color inválido:', code, e);
+          }
+        }
+      }
+      
+      if (newColors.length === 0) {
+        this.showNotification('Error', 'No se encontraron colores válidos', 'error');
+        return;
+      }
+      
+      // Actualizar paleta
+      this.colors = newColors;
+      this.renderColorPalette();
+      this.updateCombinations();
+      this.urlService.updateURL(this.colors);
+      
+      // Limpiar input y mostrar notificación
+      urlInput.value = '';
+      document.getElementById('import-coolors').disabled = true;
+      
+      this.showNotification(
+        'Importación exitosa', 
+        `Se importaron ${newColors.length} colores`,
+        'success'
+      );
+      
+    } catch(e) {
+      console.error('Error al importar:', e);
+      this.showNotification('Error', 'No se pudieron importar los colores', 'error');
+    }
+  }
